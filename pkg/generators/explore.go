@@ -10,6 +10,9 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
+// Compile-time check to ensure ExploreGenerator implements ExploreGeneratorInterface
+var _ ExploreGeneratorInterface = (*ExploreGenerator)(nil)
+
 // ExploreGenerator handles generation of LookML explores
 type ExploreGenerator struct {
 	config *config.Config

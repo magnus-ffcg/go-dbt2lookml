@@ -10,6 +10,9 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
+// Compile-time check to ensure DimensionGenerator implements DimensionGeneratorInterface
+var _ DimensionGeneratorInterface = (*DimensionGenerator)(nil)
+
 // DimensionGenerator handles generation of LookML dimensions and dimension groups
 type DimensionGenerator struct {
 	config *config.Config

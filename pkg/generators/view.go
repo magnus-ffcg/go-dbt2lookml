@@ -10,6 +10,9 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
+// Compile-time check to ensure ViewGenerator implements ViewGeneratorInterface
+var _ ViewGeneratorInterface = (*ViewGenerator)(nil)
+
 // ViewGenerator handles generation of LookML views
 type ViewGenerator struct {
 	config             *config.Config

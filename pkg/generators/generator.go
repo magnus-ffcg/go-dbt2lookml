@@ -1,6 +1,7 @@
 package generators
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -19,6 +20,9 @@ const (
 	// filePermissions defines the file permissions for generated LookML files
 	filePermissions = 0644
 )
+
+// Compile-time check to ensure LookMLGenerator implements LookMLGeneratorInterface
+var _ LookMLGeneratorInterface = (*LookMLGenerator)(nil)
 
 // LookMLGenerator is the main generator that coordinates all LookML generation
 type LookMLGenerator struct {
@@ -42,6 +46,12 @@ func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
 
 // GenerateAll generates all LookML files for the given models
 func (g *LookMLGenerator) GenerateAll(models []*models.DbtModel) (int, error) {
+	// Call the context-aware version with background context
+	return g.GenerateAllWithContext(context.Background(), models)
+}
+
+// GenerateAllWithContext generates all LookML files for the given models with cancellation support
+func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*models.DbtModel) (int, error) {
 	if len(models) == 0 {
 		return 0, fmt.Errorf("no models provided for generation")
 	}
@@ -55,6 +65,14 @@ func (g *LookMLGenerator) GenerateAll(models []*models.DbtModel) (int, error) {
 	var errors []string
 
 	for _, model := range models {
+		// Check for cancellation before processing each model
+		select {
+		case <-ctx.Done():
+			return filesGenerated, fmt.Errorf("generation cancelled after %d files: %w", filesGenerated, ctx.Err())
+		default:
+			// Continue processing
+		}
+
 		log.Printf("Generating LookML for model: %s", model.Name)
 
 		// Generate main view file (includes explore and nested views inline)

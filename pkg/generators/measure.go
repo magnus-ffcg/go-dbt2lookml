@@ -9,6 +9,9 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
+// Compile-time check to ensure MeasureGenerator implements MeasureGeneratorInterface
+var _ MeasureGeneratorInterface = (*MeasureGenerator)(nil)
+
 // MeasureGenerator handles generation of LookML measures
 type MeasureGenerator struct {
 	config *config.Config
