@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/cli"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/cli"
 )
 
 const banner = `

@@ -31,6 +31,7 @@ type Config struct {
 	IncludeISOFields   bool     `mapstructure:"include_iso_fields"`
 	Timeframes         []string `mapstructure:"timeframes"`
 	RemoveSchemaString string   `mapstructure:"remove_schema_string"`
+	Flatten            bool     `mapstructure:"flatten"`
 
 	// Utility options
 	LogLevel        string `mapstructure:"log_level"`
@@ -65,6 +66,7 @@ func setDefaults() {
 	viper.SetDefault("use_table_name", false)
 	viper.SetDefault("generate_locale", false)
 	viper.SetDefault("include_iso_fields", false)
+	viper.SetDefault("flatten", false)
 	viper.SetDefault("continue_on_error", false)
 	viper.SetDefault("include_models", []string{})
 	viper.SetDefault("exclude_models", []string{})

@@ -1,8 +1,6 @@
 # dbt2lookml (Go)
 
-Generate LookML views from BigQuery via dbt models - Go implementation.
-
-This is a Go port of the original Python dbt2lookml tool, providing the same functionality with improved performance and easier deployment.
+Generate LookML views from BigQuery via dbt models.
 
 ## Features
 
@@ -35,17 +33,9 @@ go test ./...
 # Run unit tests only
 go test ./tests/unit/...
 
-# Run with verbose output
-go test ./tests/unit/... -v
-
-# Run specific package
-go test ./tests/unit/models -v
-
 # Run with coverage
-go test ./tests/unit/... -cover
+go test ./tests... -cover
 ```
-
-**Test Coverage**: 79% (230+ test cases) - See [TESTING_SUMMARY.md](TESTING_SUMMARY.md) for details.
 
 ### Building
 
@@ -66,3 +56,4 @@ golangci-lint run
 - `pkg/` - Public packages (models, parsers, generators)
 - `internal/` - Private application code
 - `tests/` - Test files and fixtures
+- `docs/` - Project documentation, split on development and public docs.

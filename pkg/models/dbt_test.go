@@ -3,8 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +12,7 @@ import (
 func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 	tests := []struct {
 		name                 string
-		column               models.DbtModelColumn
+		column               DbtModelColumn
 		expectedName         string
 		expectedOriginalName string
 		expectedNested       bool
@@ -22,7 +21,7 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 	}{
 		{
 			name: "simple column",
-			column: models.DbtModelColumn{
+			column: DbtModelColumn{
 				Name: "CustomerName",
 			},
 			expectedName:         "customername",
@@ -33,7 +32,7 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 		},
 		{
 			name: "nested column",
-			column: models.DbtModelColumn{
+			column: DbtModelColumn{
 				Name: "Address.Street.Name",
 			},
 			expectedName:         "address.street.name",
@@ -44,7 +43,7 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 		},
 		{
 			name: "lowercase column",
-			column: models.DbtModelColumn{
+			column: DbtModelColumn{
 				Name: "simple_column",
 			},
 			expectedName:         "simple_column",
@@ -55,7 +54,7 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 		},
 		{
 			name: "column with existing original name",
-			column: models.DbtModelColumn{
+			column: DbtModelColumn{
 				Name:         "testcolumn",
 				OriginalName: stringPtr("TestColumn"),
 			},
@@ -88,7 +87,7 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 
 // TestDbtModelColumn_DescriptionNotSet tests that description is not auto-set
 func TestDbtModelColumn_DescriptionNotSet(t *testing.T) {
-	column := models.DbtModelColumn{
+	column := DbtModelColumn{
 		Name: "test",
 	}
 	
@@ -140,7 +139,7 @@ func TestDbtCatalogNodeColumn_ProcessColumnType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			column := models.DbtCatalogNodeColumn{
+			column := DbtCatalogNodeColumn{
 				Name: "test_column",
 				Type: tt.columnType,
 			}
@@ -158,8 +157,8 @@ func TestDbtCatalogNodeColumn_ProcessColumnType(t *testing.T) {
 
 // TestDbtCatalogNode_NormalizeColumnNames tests column name normalization
 func TestDbtCatalogNode_NormalizeColumnNames(t *testing.T) {
-	node := models.DbtCatalogNode{
-		Columns: map[string]models.DbtCatalogNodeColumn{
+	node := DbtCatalogNode{
+		Columns: map[string]DbtCatalogNodeColumn{
 			"CustomerID": {
 				Name: "CustomerID",
 				Type: "INT64",
@@ -197,8 +196,8 @@ func TestDbtCatalogNode_NormalizeColumnNames(t *testing.T) {
 
 // TestDbtModel_NormalizeColumnNames tests model column normalization
 func TestDbtModel_NormalizeColumnNames(t *testing.T) {
-	model := models.DbtModel{
-		Columns: map[string]models.DbtModelColumn{
+	model := DbtModel{
+		Columns: map[string]DbtModelColumn{
 			"MixedCase": {
 				Name: "MixedCase",
 			},
@@ -259,7 +258,7 @@ func TestDbtManifestMetadata_ValidateAdapter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metadata := models.DbtManifestMetadata{
+			metadata := DbtManifestMetadata{
 				AdapterType: tt.adapterType,
 			}
 
@@ -275,36 +274,13 @@ func TestDbtManifestMetadata_ValidateAdapter(t *testing.T) {
 	}
 }
 
-// TestDbtManifest_GetModels tests getting models from manifest
-func TestDbtManifest_GetModels(t *testing.T) {
-	manifest := models.DbtManifest{
-		Nodes: map[string]interface{}{
-			"model.test.model1": map[string]interface{}{
-				"resource_type": "model",
-				"name":          "model1",
-			},
-			"model.test.model2": map[string]interface{}{
-				"resource_type": "model",
-				"name":          "model2",
-			},
-			"seed.test.seed1": map[string]interface{}{
-				"resource_type": "seed",
-				"name":          "seed1",
-			},
-		},
-	}
-
-	models := manifest.GetModels()
-
-	// Should only return model nodes, not seeds
-	// Note: convertMapToDbtModel returns nil currently, so this will be empty
-	// This test documents the expected behavior once conversion is implemented
-	assert.NotNil(t, models)
-}
+// Note: DbtManifest.GetModels() was removed as dead code.
+// Model extraction is now handled by DbtParser.GetModels() in pkg/parsers/base.go
+// which properly converts manifest data to DbtModel structs.
 
 // TestDbtExposureRef tests exposure reference structure
 func TestDbtExposureRef(t *testing.T) {
-	ref := models.DbtExposureRef{
+	ref := DbtExposureRef{
 		Name:    "test_model",
 		Package: stringPtr("test_package"),
 		Version: "1.0",
@@ -321,15 +297,15 @@ func TestDbtExposure(t *testing.T) {
 	description := "Test exposure"
 	url := "https://example.com"
 	
-	exposure := models.DbtExposure{
-		DbtNode: models.DbtNode{
+	exposure := DbtExposure{
+		DbtNode: DbtNode{
 			Name:         "test_exposure",
 			UniqueID:     "exposure.test.test_exposure",
 			ResourceType: enums.ResourceExposure,
 		},
 		Description: &description,
 		URL:         &url,
-		Refs: []models.DbtExposureRef{
+		Refs: []DbtExposureRef{
 			{Name: "model1"},
 			{Name: "model2"},
 		},

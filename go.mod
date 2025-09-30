@@ -1,4 +1,4 @@
-module github.com/magnus-ffcg/dbt2lookml
+module github.com/magnus-ffcg/go-dbt2lookml
 
 go 1.21
 

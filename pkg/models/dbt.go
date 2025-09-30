@@ -2,11 +2,10 @@ package models
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/utils"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
 // DbtBaseModel represents the base model for dbt objects
@@ -75,11 +74,6 @@ func (c *DbtCatalogNodeColumn) ProcessColumnType() {
 	}
 	c.DataType = dataType
 	
-	// Debug: log the processing
-	if strings.HasPrefix(strings.ToUpper(dataType), "ARRAY") {
-		log.Printf("DEBUG PROCESS: Column %s - Type: '%s' -> DataType: '%s'", c.Name, c.Type, c.DataType)
-	}
-	
 	// Parse inner types using schema parser (simplified version)
 	// This would need to be implemented based on the Python schema parser
 	c.InnerTypes = parseInnerTypes(c.Type)
@@ -114,11 +108,6 @@ func (n *DbtCatalogNode) NormalizeColumnNames() {
 		// Preserve the original name for proper LookML naming
 		column.OriginalName = name
 		column.Name = lowerName
-		
-		// Debug: log original vs normalized names for supplier columns
-		if strings.Contains(strings.ToLower(name), "supplier") {
-			log.Printf("DEBUG NORMALIZE: Original: '%s' -> Normalized: '%s'", name, lowerName)
-		}
 		
 		normalizedColumns[lowerName] = column
 	}
@@ -258,33 +247,4 @@ type DbtManifest struct {
 	Nodes     map[string]interface{} `json:"nodes" yaml:"nodes"` // Can be DbtModel or DbtNode
 	Metadata  DbtManifestMetadata    `json:"metadata" yaml:"metadata"`
 	Exposures map[string]DbtExposure `json:"exposures" yaml:"exposures"`
-}
-
-// GetModels returns only the model nodes from the manifest
-func (m *DbtManifest) GetModels() map[string]*DbtModel {
-	models := make(map[string]*DbtModel)
-	
-	for key, node := range m.Nodes {
-		// Try to convert to DbtModel
-		if nodeMap, ok := node.(map[string]interface{}); ok {
-			if resourceType, exists := nodeMap["resource_type"]; exists {
-				if resourceType == string(enums.ResourceModel) {
-					// Convert map to DbtModel struct
-					model := convertMapToDbtModel(nodeMap)
-					if model != nil {
-						models[key] = model
-					}
-				}
-			}
-		}
-	}
-	
-	return models
-}
-
-// convertMapToDbtModel converts a map[string]interface{} to a DbtModel
-func convertMapToDbtModel(nodeMap map[string]interface{}) *DbtModel {
-	// This would need proper JSON unmarshaling logic
-	// For now, return nil as placeholder
-	return nil
 }

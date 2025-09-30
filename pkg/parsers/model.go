@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
 // ModelParser handles parsing of DBT models from manifest
@@ -148,17 +148,6 @@ func (p *ModelParser) convertToModel(node interface{}) *models.DbtModel {
 	var model models.DbtModel
 	if err := json.Unmarshal(nodeBytes, &model); err != nil {
 		return nil
-	}
-	
-	// Debug: log column count for our test model
-	if strings.Contains(model.Name, "dq_ICASOI_Current") {
-		log.Printf("DEBUG MANIFEST: Model %s has %d columns after JSON unmarshal", model.Name, len(model.Columns))
-		// Log a snippet of the raw JSON to see the structure
-		jsonStr := string(nodeBytes)
-		if len(jsonStr) > 500 {
-			jsonStr = jsonStr[:500] + "..."
-		}
-		log.Printf("DEBUG MANIFEST JSON: %s", jsonStr)
 	}
 	
 	// Process columns

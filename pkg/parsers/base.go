@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
 // DbtParser is the main DBT parser that coordinates parsing of manifest and catalog files
@@ -93,18 +92,6 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 
 	for _, model := range filteredModels {
 		if processedModel, err := p.catalogParser.ProcessModelColumns(model); err == nil && processedModel != nil {
-			// Debug: check if processed model has ARRAY columns
-			if strings.Contains(model.Name, "dq_ICASOI_Current") {
-				arrayCount := 0
-				for colName, col := range processedModel.Columns {
-					if col.DataType != nil && strings.HasPrefix(strings.ToUpper(*col.DataType), "ARRAY") {
-						arrayCount++
-						log.Printf("DEBUG PARSER: Processed model %s has ARRAY column %s", model.Name, colName)
-					}
-				}
-				log.Printf("DEBUG PARSER: Processed model %s has %d ARRAY columns", model.Name, arrayCount)
-			}
-			
 			// Store catalog data reference for generators (would need proper implementation)
 			// processedModel.CatalogData = p.catalogParser.rawCatalogData
 			
@@ -119,7 +106,9 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 			processedModels = append(processedModels, processedModel)
 		} else {
 			failedModels = append(failedModels, model.Name)
-			log.Printf("DEBUG PARSER: Failed to process model %s: %v", model.Name, err)
+			if err != nil {
+				log.Printf("Failed to process model %s: %v", model.Name, err)
+			}
 		}
 	}
 

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/generators"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/parsers"
-	"github.com/magnus-ffcg/dbt2lookml/tests/integration/utils"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/generators"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/parsers"
+	"github.com/magnus-ffcg/go-dbt2lookml/tests/integration/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

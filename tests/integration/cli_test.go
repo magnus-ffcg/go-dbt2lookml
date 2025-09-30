@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

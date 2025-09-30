@@ -3,7 +3,7 @@ package parsers
 import (
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
 // ExposureParser handles parsing of DBT exposures from manifest

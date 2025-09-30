@@ -2,13 +2,12 @@ package generators
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/utils"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
 // DimensionGenerator handles generation of LookML dimensions and dimension groups
@@ -25,11 +24,6 @@ func NewDimensionGenerator(cfg *config.Config) *DimensionGenerator {
 
 // GenerateDimension generates a LookML dimension from a model column
 func (g *DimensionGenerator) GenerateDimension(model *models.DbtModel, column *models.DbtModelColumn) (*models.LookMLDimension, error) {
-	// Debug: log dimension generation entry
-	if strings.Contains(column.Name, "sales") {
-		log.Printf("DEBUG DIM GEN: Generating dimension for column '%s'", column.Name)
-	}
-
 	// Skip date/time columns - they will be dimension_groups
 	if g.shouldBeDimensionGroup(column) {
 		return nil, nil
@@ -96,11 +90,6 @@ func (g *DimensionGenerator) GenerateDimensionGroup(model *models.DbtModel, colu
 
 // GetDimensionName gets the dimension name from the column
 func (g *DimensionGenerator) GetDimensionName(column *models.DbtModelColumn) string {
-	// Debug: log entry
-	if strings.Contains(column.Name, "classification") {
-		log.Printf("DEBUG GET NAME: Called for column '%s', LookMLName is nil: %v", column.Name, column.LookMLName == nil)
-	}
-
 	// For hierarchical columns (containing dots), always generate the full LookML name
 	// Don't use the existing LookMLName as it might just be the leaf part
 	if strings.Contains(column.Name, ".") {
@@ -112,9 +101,6 @@ func (g *DimensionGenerator) GetDimensionName(column *models.DbtModelColumn) str
 
 		// Generate hierarchical name like "classification__itemsubgroup__code"
 		lookmlName := utils.ToLookMLName(nameToConvert)
-		if strings.Contains(column.Name, "supplier") || strings.Contains(nameToConvert, "Supplier") {
-			log.Printf("DEBUG GET NAME: Hierarchical column '%s' (original: '%s') -> '%s'", column.Name, nameToConvert, lookmlName)
-		}
 		return lookmlName
 	}
 
@@ -132,11 +118,6 @@ func (g *DimensionGenerator) GetDimensionName(column *models.DbtModelColumn) str
 
 	// This converts "SupplierInformation" -> "supplier_information"
 	lookmlName := utils.ToLookMLName(nameToConvert)
-
-	// Debug: log name conversion for all columns
-	if strings.Contains(column.Name, "supplier") || strings.Contains(nameToConvert, "Supplier") {
-		log.Printf("DEBUG NAME FINAL: Column '%s' (original: '%s') -> LookML name '%s'", column.Name, nameToConvert, lookmlName)
-	}
 
 	return lookmlName
 }

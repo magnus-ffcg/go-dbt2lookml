@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/utils"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
 // ViewGenerator handles generation of LookML views

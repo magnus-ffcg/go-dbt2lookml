@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

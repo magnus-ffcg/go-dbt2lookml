@@ -3,18 +3,17 @@ package models
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestColumnCollections_NewColumnCollections(t *testing.T) {
 	// Create a test model with various column types
-	model := &models.DbtModel{
-		DbtNode: models.DbtNode{
+	model := &DbtModel{
+		DbtNode: DbtNode{
 			Name: "test_model",
 		},
-		Columns: map[string]models.DbtModelColumn{
+		Columns: map[string]DbtModelColumn{
 			"id": {
 				Name:     "id",
 				DataType: stringPtr("INT64"),
@@ -44,7 +43,7 @@ func TestColumnCollections_NewColumnCollections(t *testing.T) {
 		},
 	}
 
-	collections := models.NewColumnCollections(model, nil)
+	collections := NewColumnCollections(model, nil)
 	require.NotNil(t, collections)
 
 	// Test main view columns - should exclude ARRAY columns
@@ -69,13 +68,13 @@ func TestColumnCollections_NewColumnCollections(t *testing.T) {
 func TestColumnCollections_ArrayClassification(t *testing.T) {
 	tests := []struct {
 		name                string
-		columns             map[string]models.DbtModelColumn
+		columns             map[string]DbtModelColumn
 		expectedMainView    []string
 		expectedNestedViews []string
 	}{
 		{
 			name: "simple array without children",
-			columns: map[string]models.DbtModelColumn{
+			columns: map[string]DbtModelColumn{
 				"tags": {
 					Name:     "tags",
 					DataType: stringPtr("ARRAY<STRING>"),
@@ -90,7 +89,7 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 		},
 		{
 			name: "array with struct children",
-			columns: map[string]models.DbtModelColumn{
+			columns: map[string]DbtModelColumn{
 				"sales": {
 					Name:     "sales",
 					DataType: stringPtr("ARRAY<STRUCT<amount NUMERIC>>"),
@@ -110,7 +109,7 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 		},
 		{
 			name: "nested arrays",
-			columns: map[string]models.DbtModelColumn{
+			columns: map[string]DbtModelColumn{
 				"sales": {
 					Name:     "sales",
 					DataType: stringPtr("ARRAY<STRUCT<items ARRAY<STRING>>>"),
@@ -130,7 +129,7 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 		},
 		{
 			name: "mixed column types",
-			columns: map[string]models.DbtModelColumn{
+			columns: map[string]DbtModelColumn{
 				"id": {
 					Name:     "id",
 					DataType: stringPtr("INT64"),
@@ -164,14 +163,14 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			model := &models.DbtModel{
-				DbtNode: models.DbtNode{
+			model := &DbtModel{
+				DbtNode: DbtNode{
 					Name: "test_model",
 				},
 				Columns: tt.columns,
 			}
 
-			collections := models.NewColumnCollections(model, nil)
+			collections := NewColumnCollections(model, nil)
 			require.NotNil(t, collections)
 
 			// Check main view columns
@@ -198,11 +197,11 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 }
 
 func TestColumnCollections_HierarchyBuilding(t *testing.T) {
-	model := &models.DbtModel{
-		DbtNode: models.DbtNode{
+	model := &DbtModel{
+		DbtNode: DbtNode{
 			Name: "test_model",
 		},
-		Columns: map[string]models.DbtModelColumn{
+		Columns: map[string]DbtModelColumn{
 			"sales": {
 				Name:     "sales",
 				DataType: stringPtr("ARRAY<STRUCT<amount NUMERIC, items ARRAY<STRING>>>"),
@@ -220,7 +219,7 @@ func TestColumnCollections_HierarchyBuilding(t *testing.T) {
 		},
 	}
 
-	collections := models.NewColumnCollections(model, nil)
+	collections := NewColumnCollections(model, nil)
 	require.NotNil(t, collections)
 
 	// Should have nested views for both sales and sales.items
@@ -242,23 +241,23 @@ func TestColumnCollections_HierarchyBuilding(t *testing.T) {
 func TestColumnCollections_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name    string
-		model   *models.DbtModel
+		model   *DbtModel
 		wantErr bool
 	}{
 		{
 			name: "empty model",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
+			model: &DbtModel{
+				DbtNode: DbtNode{
 					Name: "empty_model",
 				},
-				Columns: map[string]models.DbtModelColumn{},
+				Columns: map[string]DbtModelColumn{},
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil columns map",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
+			model: &DbtModel{
+				DbtNode: DbtNode{
 					Name: "nil_columns_model",
 				},
 				Columns: nil,
@@ -267,11 +266,11 @@ func TestColumnCollections_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "columns with nil data types",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
+			model: &DbtModel{
+				DbtNode: DbtNode{
 					Name: "nil_datatype_model",
 				},
-				Columns: map[string]models.DbtModelColumn{
+				Columns: map[string]DbtModelColumn{
 					"col1": {
 						Name:     "col1",
 						DataType: nil,
@@ -288,7 +287,7 @@ func TestColumnCollections_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			collections := models.NewColumnCollections(tt.model, nil)
+			collections := NewColumnCollections(tt.model, nil)
 			
 			if tt.wantErr {
 				assert.Nil(t, collections)
@@ -303,11 +302,11 @@ func TestColumnCollections_EdgeCases(t *testing.T) {
 }
 
 func TestColumnCollections_ArrayModelsParameter(t *testing.T) {
-	model := &models.DbtModel{
-		DbtNode: models.DbtNode{
+	model := &DbtModel{
+		DbtNode: DbtNode{
 			Name: "test_model",
 		},
-		Columns: map[string]models.DbtModelColumn{
+		Columns: map[string]DbtModelColumn{
 			"sales": {
 				Name:     "sales",
 				DataType: stringPtr("ARRAY<STRUCT<amount NUMERIC>>"),
@@ -322,7 +321,7 @@ func TestColumnCollections_ArrayModelsParameter(t *testing.T) {
 
 	// Test with array models parameter
 	arrayModels := []string{"sales"} // Explicitly specify sales as array model
-	collections := models.NewColumnCollections(model, arrayModels)
+	collections := NewColumnCollections(model, arrayModels)
 	require.NotNil(t, collections)
 
 	// Should still work correctly
@@ -333,11 +332,11 @@ func TestColumnCollections_ArrayModelsParameter(t *testing.T) {
 }
 
 func TestColumnCollections_NonArrayStructHandling(t *testing.T) {
-	model := &models.DbtModel{
-		DbtNode: models.DbtNode{
+	model := &DbtModel{
+		DbtNode: DbtNode{
 			Name: "test_model",
 		},
-		Columns: map[string]models.DbtModelColumn{
+		Columns: map[string]DbtModelColumn{
 			"metadata": {
 				Name:     "metadata",
 				DataType: stringPtr("STRUCT<version INT64, name STRING>"),
@@ -355,7 +354,7 @@ func TestColumnCollections_NonArrayStructHandling(t *testing.T) {
 		},
 	}
 
-	collections := models.NewColumnCollections(model, nil)
+	collections := NewColumnCollections(model, nil)
 	require.NotNil(t, collections)
 
 	// Actual behavior: Non-ARRAY STRUCT parent is not in main view, only nested fields

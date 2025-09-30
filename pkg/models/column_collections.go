@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -43,7 +42,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 	for colName, colInfo := range hierarchy {
 		if colInfo.IsArray && colInfo.Column != nil {
 			arrayModelNames[colName] = true
-			fmt.Printf("DEBUG HIERARCHY: Found ARRAY column %s in hierarchy\n", colName)
 		}
 	}
 
@@ -125,7 +123,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 
 // buildHierarchyMap builds a map of parent -> children relationships based on dot notation
 func buildHierarchyMap(columns map[string]DbtModelColumn) map[string]*HierarchyInfo {
-	fmt.Printf("DEBUG HIERARCHY: Building hierarchy for %d columns\n", len(columns))
 	hierarchy := make(map[string]*HierarchyInfo)
 
 	// First pass: create all hierarchy entries
@@ -144,34 +141,18 @@ func buildHierarchyMap(columns map[string]DbtModelColumn) map[string]*HierarchyI
 	}
 
 	// Second pass: set correct column references and array flags
-	arrayCount := 0
 	for _, col := range columns {
 		if info, exists := hierarchy[col.Name]; exists {
-			// Debug: check for duplicate column assignments
-			if strings.Contains(col.Name, "sales") && info.Column != nil {
-				fmt.Printf("DEBUG HIERARCHY DUPLICATE: Column '%s' already has a Column assigned! Existing: %p, New: %p\n", 
-					col.Name, info.Column, &col)
-			}
 			info.Column = &col
 			// Only mark as array if the data type starts with ARRAY
 			if col.DataType != nil {
 				dataTypeUpper := strings.ToUpper(*col.DataType)
 				info.IsArray = strings.HasPrefix(dataTypeUpper, "ARRAY")
-				// Debug: log array detection
-				if info.IsArray {
-					fmt.Printf("DEBUG HIERARCHY BUILD: Found ARRAY column: %s with type: %s\n", col.Name, *col.DataType)
-					arrayCount++
-				}
 			} else {
-				// Debug: log missing data type for first few columns
-				if arrayCount < 3 {
-					fmt.Printf("DEBUG HIERARCHY BUILD: Column %s has no DataType\n", col.Name)
-				}
 				info.IsArray = false
 			}
 		}
 	}
-	fmt.Printf("DEBUG HIERARCHY: Found %d ARRAY columns in hierarchy\n", arrayCount)
 
 	// Third pass: build child relationships
 	for _, col := range columns {

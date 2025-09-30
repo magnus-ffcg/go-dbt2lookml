@@ -3,8 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,13 +11,13 @@ import (
 func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 	tests := []struct {
 		name        string
-		measure     models.DbtMetaLookerMeasure
+		measure     DbtMetaLookerMeasure
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "valid count_distinct with approximate",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:                 enums.MeasureCountDistinct,
 				Approximate:          boolPtr(true),
 				ApproximateThreshold: intPtr(1000),
@@ -27,7 +26,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "invalid approximate on sum measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:        enums.MeasureSum,
 				Approximate: boolPtr(true),
 			},
@@ -36,7 +35,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "invalid sql_distinct_key on average measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:           enums.MeasureAverage,
 				SQLDistinctKey: stringPtr("user_id"),
 			},
@@ -45,7 +44,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "valid precision on sum measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:      enums.MeasureSum,
 				Precision: intPtr(2),
 			},
@@ -53,7 +52,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "valid precision on average measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:      enums.MeasureAverage,
 				Precision: intPtr(3),
 			},
@@ -61,7 +60,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "invalid precision on count measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type:      enums.MeasureCount,
 				Precision: intPtr(2),
 			},
@@ -70,7 +69,7 @@ func TestDbtMetaLookerMeasure_ValidateMeasureAttributes(t *testing.T) {
 		},
 		{
 			name: "basic count measure",
-			measure: models.DbtMetaLookerMeasure{
+			measure: DbtMetaLookerMeasure{
 				Type: enums.MeasureCount,
 			},
 			expectError: false,
@@ -100,7 +99,7 @@ func TestLookMLDimension_Structure(t *testing.T) {
 	hidden := true
 	groupLabel := "Customer Info"
 	
-	dimension := models.LookMLDimension{
+	dimension := LookMLDimension{
 		Name:        "customer_name",
 		Type:        "string",
 		SQL:         "${TABLE}.customer_name",
@@ -123,7 +122,7 @@ func TestLookMLDimension_Structure(t *testing.T) {
 func TestLookMLDimensionGroup_Structure(t *testing.T) {
 	label := "Created"
 	
-	dimensionGroup := models.LookMLDimensionGroup{
+	dimensionGroup := LookMLDimensionGroup{
 		Name:  "created_at",
 		Type:  "time",
 		SQL:   "${TABLE}.created_at",
@@ -148,7 +147,7 @@ func TestLookMLMeasure_Structure(t *testing.T) {
 	label := "Total Amount"
 	precision := 2
 	
-	measure := models.LookMLMeasure{
+	measure := LookMLMeasure{
 		Name:      "total_amount",
 		Type:      enums.MeasureSum,
 		SQL:       &sql,
@@ -168,15 +167,15 @@ func TestLookMLMeasure_Structure(t *testing.T) {
 func TestLookMLView_Structure(t *testing.T) {
 	label := "Customer View"
 	
-	view := models.LookMLView{
+	view := LookMLView{
 		Name:         "customers",
 		SQLTableName: "`project.dataset.customers`",
 		Label:        &label,
-		Dimensions: []models.LookMLDimension{
+		Dimensions: []LookMLDimension{
 			{Name: "id", Type: "number", SQL: "${TABLE}.id"},
 			{Name: "name", Type: "string", SQL: "${TABLE}.name"},
 		},
-		Measures: []models.LookMLMeasure{
+		Measures: []LookMLMeasure{
 			{Name: "count", Type: enums.MeasureCount},
 		},
 	}
@@ -194,12 +193,12 @@ func TestLookMLExplore_Structure(t *testing.T) {
 	label := "Customer Analysis"
 	hidden := true
 	
-	explore := models.LookMLExplore{
+	explore := LookMLExplore{
 		Name:        "customers",
 		ViewName:    "customers",
 		Label:       &label,
 		Hidden:      &hidden,
-		Joins: []models.LookMLJoin{
+		Joins: []LookMLJoin{
 			{
 				Name: "orders",
 				Type: &[]enums.LookerJoinType{enums.JoinLeftOuter}[0],
@@ -221,7 +220,7 @@ func TestLookMLJoin_Structure(t *testing.T) {
 	joinType := enums.JoinLeftOuter
 	relationship := enums.RelationshipManyToOne
 	
-	join := models.LookMLJoin{
+	join := LookMLJoin{
 		Name:         "orders",
 		ViewLabel:    &viewLabel,
 		SQL:          &sql,
@@ -242,16 +241,16 @@ func TestDbtMetaLooker_Structure(t *testing.T) {
 	viewLabel := "Test View"
 	dimLabel := "Test Dimension"
 	
-	meta := models.DbtMetaLooker{
-		View: &models.DbtMetaLookerBase{
+	meta := DbtMetaLooker{
+		View: &DbtMetaLookerBase{
 			Label: &viewLabel,
 		},
-		Dimension: &models.DbtMetaLookerDimension{
-			DbtMetaLookerBase: models.DbtMetaLookerBase{
+		Dimension: &DbtMetaLookerDimension{
+			DbtMetaLookerBase: DbtMetaLookerBase{
 				Label: &dimLabel,
 			},
 		},
-		Measures: []models.DbtMetaLookerMeasure{
+		Measures: []DbtMetaLookerMeasure{
 			{Type: enums.MeasureCount},
 			{Type: enums.MeasureSum},
 		},
@@ -266,7 +265,7 @@ func TestDbtMetaLooker_Structure(t *testing.T) {
 
 // TestDbtMetaLookerMeasureFilter_Structure tests measure filter structure
 func TestDbtMetaLookerMeasureFilter_Structure(t *testing.T) {
-	filter := models.DbtMetaLookerMeasureFilter{
+	filter := DbtMetaLookerMeasureFilter{
 		FilterDimension:  "status",
 		FilterExpression: "active",
 	}
@@ -277,7 +276,7 @@ func TestDbtMetaLookerMeasureFilter_Structure(t *testing.T) {
 
 // TestDbtMetaLookerDimension_WithTimeframes tests dimension with timeframes
 func TestDbtMetaLookerDimension_WithTimeframes(t *testing.T) {
-	dimension := models.DbtMetaLookerDimension{
+	dimension := DbtMetaLookerDimension{
 		Timeframes: []enums.LookerTimeFrame{
 			enums.TimeFrameDate,
 			enums.TimeFrameWeek,
@@ -293,7 +292,7 @@ func TestDbtMetaLookerDimension_WithTimeframes(t *testing.T) {
 
 // TestLookViewFile_Structure tests view file structure
 func TestLookViewFile_Structure(t *testing.T) {
-	file := models.LookViewFile{
+	file := LookViewFile{
 		Filename: "customers.view.lkml",
 		Contents: "view: customers { }",
 		Schema:   "public",

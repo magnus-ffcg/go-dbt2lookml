@@ -4,9 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/generators"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +14,7 @@ func TestDimensionGenerator_GenerateDimension(t *testing.T) {
 	cfg := &config.Config{
 		UseTableName: false,
 	}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name           string
@@ -114,7 +113,7 @@ func TestDimensionGenerator_GenerateDimension(t *testing.T) {
 
 func TestDimensionGenerator_DataTypeMapping(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name         string
@@ -165,7 +164,7 @@ func TestDimensionGenerator_DataTypeMapping(t *testing.T) {
 
 func TestDimensionGenerator_SQLGeneration(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name        string
@@ -220,7 +219,7 @@ func TestDimensionGenerator_SQLGeneration(t *testing.T) {
 
 func TestDimensionGenerator_NestedColumnNaming(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name            string
@@ -275,7 +274,7 @@ func TestDimensionGenerator_NestedColumnNaming(t *testing.T) {
 
 func TestDimensionGenerator_ErrorHandling(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name        string
@@ -342,7 +341,7 @@ func TestDimensionGenerator_ErrorHandling(t *testing.T) {
 
 func TestDimensionGenerator_ArrayHandling(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewDimensionGenerator(cfg)
+	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
 		name           string
@@ -402,6 +401,242 @@ func TestDimensionGenerator_ArrayHandling(t *testing.T) {
 				if dimension.Hidden != nil {
 					assert.False(t, *dimension.Hidden)
 				}
+			}
+		})
+	}
+}
+
+// TestDimensionGenerator_PascalCasePreservation tests that OriginalName preserves PascalCase for SQL
+func TestDimensionGenerator_PascalCasePreservation(t *testing.T) {
+	cfg := &config.Config{}
+	generator := NewDimensionGenerator(cfg)
+
+	tests := []struct {
+		name            string
+		columnName      string
+		originalName    string
+		expectedDimName string
+		expectedSQL     string
+	}{
+		{
+			name:            "PascalCase to snake_case in dimension name",
+			columnName:      "buyingitem_gtin",
+			originalName:    "BuyingItem_GTIN",
+			expectedDimName: "buying_item_gtin",
+			expectedSQL:     "${TABLE}.BuyingItem_GTIN", // SQL preserves PascalCase
+		},
+		{
+			name:            "nested PascalCase column",
+			columnName:      "classification.itemgroup.code",
+			originalName:    "Classification.ItemGroup.Code",
+			expectedDimName: "classification__item_group__code",
+			expectedSQL:     "${TABLE}.Classification.ItemGroup.Code", // SQL preserves PascalCase
+		},
+		{
+			name:            "complex nested with acronyms",
+			columnName:      "item.gtinid",
+			originalName:    "Item.GTINId",
+			expectedDimName: "item__gtin_id",
+			expectedSQL:     "${TABLE}.Item.GTINId", // SQL preserves original
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			column := &models.DbtModelColumn{
+				Name:         tt.columnName,
+				OriginalName: &tt.originalName,
+				DataType:     stringPtr("STRING"),
+				Nested:       strings.Contains(tt.columnName, "."),
+			}
+
+			model := &models.DbtModel{
+				DbtNode: models.DbtNode{
+					Name: "test_model",
+				},
+				RelationName: "`project.dataset.test_table`",
+			}
+
+			dimension, err := generator.GenerateDimension(model, column)
+			require.NoError(t, err)
+			require.NotNil(t, dimension)
+
+			assert.Equal(t, tt.expectedDimName, dimension.Name, "Dimension name should be snake_case")
+			assert.Equal(t, tt.expectedSQL, dimension.SQL, "SQL should preserve PascalCase from OriginalName")
+		})
+	}
+}
+
+// TestDimensionGenerator_GetDimensionName tests the GetDimensionName method directly
+func TestDimensionGenerator_GetDimensionName(t *testing.T) {
+	cfg := &config.Config{}
+	generator := NewDimensionGenerator(cfg)
+
+	tests := []struct {
+		name         string
+		column       *models.DbtModelColumn
+		expectedName string
+	}{
+		{
+			name: "simple column",
+			column: &models.DbtModelColumn{
+				Name:       "customer_name",
+				LookMLName: stringPtr("customer_name"),
+			},
+			expectedName: "customer_name",
+		},
+		{
+			name: "nested column generates full path",
+			column: &models.DbtModelColumn{
+				Name:   "address.street.name",
+				Nested: true,
+			},
+			expectedName: "address__street__name",
+		},
+		{
+			name: "PascalCase conversion",
+			column: &models.DbtModelColumn{
+				Name:         "supplierinformation",
+				OriginalName: stringPtr("SupplierInformation"),
+			},
+			expectedName: "supplier_information",
+		},
+		{
+			name: "nested PascalCase",
+			column: &models.DbtModelColumn{
+				Name:         "product.itemsubgroup.name",
+				OriginalName: stringPtr("Product.ItemSubGroup.Name"),
+				Nested:       true,
+			},
+			expectedName: "product__item_sub_group__name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generator.GetDimensionName(tt.column)
+			assert.Equal(t, tt.expectedName, result)
+		})
+	}
+}
+
+// TestDimensionGenerator_DimensionGroups tests dimension group generation
+func TestDimensionGenerator_DimensionGroups(t *testing.T) {
+	cfg := &config.Config{}
+	generator := NewDimensionGenerator(cfg)
+
+	tests := []struct {
+		name              string
+		column            *models.DbtModelColumn
+		expectedGroupName string
+		expectedType      string
+		hasTimeframes     bool
+	}{
+		{
+			name: "DATE column becomes dimension group",
+			column: &models.DbtModelColumn{
+				Name:     "order_date",
+				DataType: stringPtr("DATE"),
+			},
+			expectedGroupName: "order",        // _date suffix removed
+			expectedType:      "time",
+			hasTimeframes:     true,
+		},
+		{
+			name: "TIMESTAMP column becomes dimension group",
+			column: &models.DbtModelColumn{
+				Name:     "created_timestamp",
+				DataType: stringPtr("TIMESTAMP"),
+			},
+			expectedGroupName: "created", // _timestamp suffix removed
+			expectedType:      "time",
+			hasTimeframes:     true,
+		},
+		{
+			name: "DATETIME column becomes dimension group",
+			column: &models.DbtModelColumn{
+				Name:     "updated_datetime",
+				DataType: stringPtr("DATETIME"),
+			},
+			expectedGroupName: "updated", // _datetime suffix removed
+			expectedType:      "time",
+			hasTimeframes:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			model := &models.DbtModel{
+				DbtNode: models.DbtNode{
+					Name: "test_model",
+				},
+				RelationName: "`project.dataset.test_table`",
+			}
+
+			// GenerateDimension should return nil for date/time columns
+			dimension, err := generator.GenerateDimension(model, tt.column)
+			require.NoError(t, err)
+			assert.Nil(t, dimension, "Date/time columns should not generate regular dimensions")
+
+			// GenerateDimensionGroup should create dimension group
+			dimensionGroup, err := generator.GenerateDimensionGroup(model, tt.column)
+			require.NoError(t, err)
+			require.NotNil(t, dimensionGroup, "Date/time columns should generate dimension groups")
+
+			assert.Equal(t, tt.expectedGroupName, dimensionGroup.Name)
+			assert.Equal(t, tt.expectedType, dimensionGroup.Type)
+			
+			if tt.hasTimeframes {
+				assert.NotEmpty(t, dimensionGroup.Timeframes, "Should have timeframes")
+			}
+		})
+	}
+}
+
+// TestDimensionGenerator_GroupLabels tests group label generation for nested columns
+func TestDimensionGenerator_GroupLabels(t *testing.T) {
+	cfg := &config.Config{}
+	generator := NewDimensionGenerator(cfg)
+
+	tests := []struct {
+		name               string
+		column             *models.DbtModelColumn
+		expectedGroupLabel *string
+	}{
+		{
+			name: "simple column has no group label",
+			column: &models.DbtModelColumn{
+				Name: "customer_name",
+			},
+			expectedGroupLabel: nil,
+		},
+		{
+			name: "nested column gets group label from parent path",
+			column: &models.DbtModelColumn{
+				Name:   "classification.assortment.code",
+				Nested: true,
+			},
+			expectedGroupLabel: stringPtr("Classification Assortment"),
+		},
+		{
+			name: "single level nested column",
+			column: &models.DbtModelColumn{
+				Name:   "address.street",
+				Nested: true,
+			},
+			expectedGroupLabel: stringPtr("Address"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generator.GetDimensionGroupLabel(tt.column)
+			
+			if tt.expectedGroupLabel == nil {
+				assert.Nil(t, result)
+			} else {
+				require.NotNil(t, result)
+				assert.Equal(t, *tt.expectedGroupLabel, *result)
 			}
 		})
 	}

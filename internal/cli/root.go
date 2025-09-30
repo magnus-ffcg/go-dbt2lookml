@@ -13,32 +13,39 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/generators"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/parsers"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/generators"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/parsers"
 )
 
-var (
-	cfgFile      string
-	manifestPath string
-	catalogPath  string
-	targetDir    string
-	outputDir    string
-	tag          string
-	logLevel     string
-	selectModel  string
-	exposuresOnly bool
-	exposuresTag string
-	useTableName bool
-	continueOnError bool
-	includeModels []string
-	excludeModels []string
-	timeframes   []string
-	includeISOFields bool
-	generateLocale bool
+// cliFlags holds all CLI flag values in a single struct
+// This avoids package-level variables and makes testing easier
+type cliFlags struct {
+	cfgFile            string
+	manifestPath       string
+	catalogPath        string
+	targetDir          string
+	outputDir          string
+	tag                string
+	logLevel           string
+	selectModel        string
+	exposuresOnly      bool
+	exposuresTag       string
+	useTableName       bool
+	continueOnError    bool
+	includeModels      []string
+	excludeModels      []string
+	timeframes         []string
+	includeISOFields   bool
+	generateLocale     bool
 	removeSchemaString string
-	reportPath string
-)
+	reportPath         string
+	flatten            bool
+}
+
+// flags is the single instance holding CLI flag values
+var flags = &cliFlags{}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -60,35 +67,36 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Configuration file flag
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ./config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&flags.cfgFile, "config", "", "config file (default is ./config.yaml)")
 
 	// Core flags
-	rootCmd.Flags().StringVar(&manifestPath, "manifest-path", "", "Path to dbt manifest.json file")
-	rootCmd.Flags().StringVar(&catalogPath, "catalog-path", "", "Path to dbt catalog.json file")
-	rootCmd.Flags().StringVar(&targetDir, "target-dir", ".", "Target directory for output files")
-	rootCmd.Flags().StringVar(&outputDir, "output-dir", ".", "Output directory for LookML files")
+	rootCmd.Flags().StringVar(&flags.manifestPath, "manifest-path", "", "Path to dbt manifest.json file")
+	rootCmd.Flags().StringVar(&flags.catalogPath, "catalog-path", "", "Path to dbt catalog.json file")
+	rootCmd.Flags().StringVar(&flags.targetDir, "target-dir", ".", "Target directory for output files")
+	rootCmd.Flags().StringVar(&flags.outputDir, "output-dir", ".", "Output directory for LookML files")
 
 	// Filtering flags
-	rootCmd.Flags().StringVar(&tag, "tag", "", "Filter models by tag")
-	rootCmd.Flags().StringVar(&selectModel, "select", "", "Select a specific model")
-	rootCmd.Flags().StringSliceVar(&includeModels, "include-models", []string{}, "Include specific models")
-	rootCmd.Flags().StringSliceVar(&excludeModels, "exclude-models", []string{}, "Exclude specific models")
+	rootCmd.Flags().StringVar(&flags.tag, "tag", "", "Filter models by tag")
+	rootCmd.Flags().StringVar(&flags.selectModel, "select", "", "Select a specific model")
+	rootCmd.Flags().StringSliceVar(&flags.includeModels, "include-models", []string{}, "Include specific models")
+	rootCmd.Flags().StringSliceVar(&flags.excludeModels, "exclude-models", []string{}, "Exclude specific models")
 
 	// Exposure flags
-	rootCmd.Flags().BoolVar(&exposuresOnly, "exposures-only", false, "Generate only models referenced in exposures")
-	rootCmd.Flags().StringVar(&exposuresTag, "exposures-tag", "", "Filter exposures by tag")
+	rootCmd.Flags().BoolVar(&flags.exposuresOnly, "exposures-only", false, "Generate only models referenced in exposures")
+	rootCmd.Flags().StringVar(&flags.exposuresTag, "exposures-tag", "", "Filter exposures by tag")
 
 	// Generation options
-	rootCmd.Flags().BoolVar(&useTableName, "use-table-name", false, "Use table name instead of model name")
-	rootCmd.Flags().BoolVar(&generateLocale, "generate-locale", false, "Generate locale-specific formatting")
-	rootCmd.Flags().BoolVar(&includeISOFields, "include-iso-fields", false, "Include ISO date/time fields")
-	rootCmd.Flags().StringSliceVar(&timeframes, "timeframes", []string{}, "Custom timeframes for date dimensions")
-	rootCmd.Flags().StringVar(&removeSchemaString, "remove-schema-string", "", "String to remove from schema names")
+	rootCmd.Flags().BoolVar(&flags.useTableName, "use-table-name", false, "Use table name instead of model name")
+	rootCmd.Flags().BoolVar(&flags.generateLocale, "generate-locale", false, "Generate locale-specific formatting")
+	rootCmd.Flags().BoolVar(&flags.includeISOFields, "include-iso-fields", false, "Include ISO date/time fields")
+	rootCmd.Flags().StringSliceVar(&flags.timeframes, "timeframes", []string{}, "Custom timeframes for date dimensions")
+	rootCmd.Flags().StringVar(&flags.removeSchemaString, "remove-schema-string", "", "String to remove from schema names")
+	rootCmd.Flags().BoolVar(&flags.flatten, "flatten", false, "Generate all files in output directory without folder structure")
 
 	// Utility flags
-	rootCmd.Flags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
-	rootCmd.Flags().BoolVar(&continueOnError, "continue-on-error", false, "Continue processing on errors")
-	rootCmd.Flags().StringVar(&reportPath, "report", "", "Generate processing report to file")
+	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
+	rootCmd.Flags().BoolVar(&flags.continueOnError, "continue-on-error", false, "Continue processing on errors")
+	rootCmd.Flags().StringVar(&flags.reportPath, "report", "", "Generate processing report to file")
 
 	// Bind flags to viper
 	viper.BindPFlag("manifest_path", rootCmd.Flags().Lookup("manifest-path"))
@@ -106,6 +114,7 @@ func init() {
 	viper.BindPFlag("include_iso_fields", rootCmd.Flags().Lookup("include-iso-fields"))
 	viper.BindPFlag("timeframes", rootCmd.Flags().Lookup("timeframes"))
 	viper.BindPFlag("remove_schema_string", rootCmd.Flags().Lookup("remove-schema-string"))
+	viper.BindPFlag("flatten", rootCmd.Flags().Lookup("flatten"))
 	viper.BindPFlag("log_level", rootCmd.Flags().Lookup("log-level"))
 	viper.BindPFlag("continue_on_error", rootCmd.Flags().Lookup("continue-on-error"))
 	viper.BindPFlag("report", rootCmd.Flags().Lookup("report"))
@@ -113,9 +122,9 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
+	if flags.cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		viper.SetConfigFile(flags.cfgFile)
 	} else {
 		// Search for config in current directory
 		viper.AddConfigPath(".")
@@ -256,10 +265,10 @@ func setupLogging(level string) {
 }
 
 // generateReport creates a processing report
-func generateReport(reportPath string, models interface{}, filesGenerated int, parseTime, generateTime, totalTime time.Duration) error {
+func generateReport(reportPath string, models []*models.DbtModel, filesGenerated int, parseTime, generateTime, totalTime time.Duration) error {
 	report := map[string]interface{}{
 		"timestamp":        time.Now().Format(time.RFC3339),
-		"models_processed": len(models.([]interface{})), // This would need proper typing
+		"models_processed": len(models),
 		"files_generated":  filesGenerated,
 		"timing": map[string]string{
 			"parsing":    parseTime.String(),

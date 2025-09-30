@@ -3,10 +3,9 @@ package generators
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/generators"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +14,7 @@ func TestExploreGenerator_GenerateExplore(t *testing.T) {
 	cfg := &config.Config{
 		UseTableName: false,
 	}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name             string
@@ -90,7 +89,7 @@ func TestExploreGenerator_GenerateExplore(t *testing.T) {
 
 				assert.Equal(t, tt.expectedName, explore.Name)
 				assert.Equal(t, tt.expectedViewName, explore.ViewName)
-				
+
 				if tt.expectedLabel != nil {
 					require.NotNil(t, explore.Label)
 					assert.Equal(t, *tt.expectedLabel, *explore.Label)
@@ -104,7 +103,7 @@ func TestExploreGenerator_UseTableName(t *testing.T) {
 	cfg := &config.Config{
 		UseTableName: true,
 	}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	model := &models.DbtModel{
 		DbtNode: models.DbtNode{
@@ -124,7 +123,7 @@ func TestExploreGenerator_UseTableName(t *testing.T) {
 
 func TestExploreGenerator_ExploreAttributes(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name      string
@@ -223,7 +222,7 @@ func TestExploreGenerator_ExploreAttributes(t *testing.T) {
 
 func TestExploreGenerator_LabelGeneration(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name          string
@@ -272,13 +271,13 @@ func TestExploreGenerator_LabelGeneration(t *testing.T) {
 
 func TestExploreGenerator_JoinGeneration(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
-		name         string
-		model        *models.DbtModel
+		name          string
+		model         *models.DbtModel
 		expectedJoins int
-		checkJoins   func(*testing.T, []models.LookMLJoin)
+		checkJoins    func(*testing.T, []models.LookMLJoin)
 	}{
 		{
 			name: "model without joins",
@@ -356,13 +355,13 @@ func TestExploreGenerator_JoinGeneration(t *testing.T) {
 			expectedJoins: 2,
 			checkJoins: func(t *testing.T, joins []models.LookMLJoin) {
 				require.Len(t, joins, 2)
-				
+
 				// Check first join
 				// Note: Current implementation sets Name to empty string
 				assert.Equal(t, "", joins[0].Name)
 				require.NotNil(t, joins[0].Type)
 				assert.Equal(t, enums.JoinLeftOuter, *joins[0].Type)
-				
+
 				// Check second join
 				// Note: Current implementation sets Name to empty string
 				assert.Equal(t, "", joins[1].Name)
@@ -386,7 +385,7 @@ func TestExploreGenerator_JoinGeneration(t *testing.T) {
 
 func TestExploreGenerator_JoinTypes(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name         string
@@ -436,7 +435,7 @@ func TestExploreGenerator_JoinTypes(t *testing.T) {
 
 func TestExploreGenerator_ErrorHandling(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name        string
@@ -483,7 +482,7 @@ func TestExploreGenerator_ErrorHandling(t *testing.T) {
 
 func TestExploreGenerator_DescriptionPriority(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewExploreGenerator(cfg)
+	generator := NewExploreGenerator(cfg)
 
 	tests := []struct {
 		name                string

@@ -3,17 +3,16 @@ package generators
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/generators"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMeasureGenerator_GenerateDefaultCountMeasure(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	tests := []struct {
 		name           string
@@ -129,16 +128,16 @@ func TestMeasureGenerator_GenerateDefaultCountMeasure(t *testing.T) {
 
 func TestMeasureGenerator_GenerateMeasure(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	tests := []struct {
-		name           string
-		model          *models.DbtModel
-		measureMeta    *models.DbtMetaLookerMeasure
-		expectedName   string
-		expectedType   enums.LookerMeasureType
-		expectedSQL    *string
-		expectError    bool
+		name         string
+		model        *models.DbtModel
+		measureMeta  *models.DbtMetaLookerMeasure
+		expectedName string
+		expectedType enums.LookerMeasureType
+		expectedSQL  *string
+		expectError  bool
 	}{
 		{
 			name: "simple sum measure",
@@ -196,8 +195,8 @@ func TestMeasureGenerator_GenerateMeasure(t *testing.T) {
 			},
 			measureMeta: &models.DbtMetaLookerMeasure{
 				Name:        measureStringPtr("invalid_measure"),
-				Type:        enums.MeasureSum, // Not count_distinct
-				Approximate: measureBoolPtr(true),    // But has approximate (invalid)
+				Type:        enums.MeasureSum,     // Not count_distinct
+				Approximate: measureBoolPtr(true), // But has approximate (invalid)
 			},
 			expectError: true,
 		},
@@ -222,7 +221,7 @@ func TestMeasureGenerator_GenerateMeasure(t *testing.T) {
 
 func TestMeasureGenerator_MeasureTypes(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	model := &models.DbtModel{
 		DbtNode: models.DbtNode{
@@ -264,7 +263,7 @@ func TestMeasureGenerator_MeasureTypes(t *testing.T) {
 
 func TestMeasureGenerator_MeasureAttributes(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	model := &models.DbtModel{
 		DbtNode: models.DbtNode{
@@ -347,7 +346,7 @@ func TestMeasureGenerator_MeasureAttributes(t *testing.T) {
 
 func TestMeasureGenerator_CountDistinctValidation(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	model := &models.DbtModel{
 		DbtNode: models.DbtNode{
@@ -411,7 +410,7 @@ func TestMeasureGenerator_CountDistinctValidation(t *testing.T) {
 
 func TestMeasureGenerator_ErrorHandling(t *testing.T) {
 	cfg := &config.Config{}
-	generator := generators.NewMeasureGenerator(cfg)
+	generator := NewMeasureGenerator(cfg)
 
 	tests := []struct {
 		name        string

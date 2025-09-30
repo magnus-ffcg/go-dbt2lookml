@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/magnus-ffcg/dbt2lookml/pkg/models"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
 // CatalogParser handles parsing of DBT catalog data
@@ -29,21 +29,6 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 		log.Printf("No catalog entry found for model: %s", model.Name)
 		return model, nil
 	}
-	
-	// Debug: log processing for our test model
-	if strings.Contains(model.Name, "dq_ICASOI_Current") {
-		log.Printf("DEBUG: Processing catalog for model %s with %d manifest columns, %d catalog columns", model.Name, len(model.Columns), len(catalogNode.Columns))
-		
-		// Check if manifest has the ARRAY columns we found in catalog
-		arrayColumnsInCatalog := []string{"item_information_claim_detail", "central_department", "ica_ethical_accreditation"}
-		for _, arrayCol := range arrayColumnsInCatalog {
-			if _, exists := model.Columns[arrayCol]; exists {
-				log.Printf("DEBUG: Manifest HAS column %s", arrayCol)
-			} else {
-				log.Printf("DEBUG: Manifest MISSING column %s", arrayCol)
-			}
-		}
-	}
 
 	// Normalize catalog column names and process column types
 	catalogNode.NormalizeColumnNames()
@@ -60,8 +45,6 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 	processedColumns := make(map[string]models.DbtModelColumn)
 
 	// Always create columns from catalog (manifest columns are typically empty)
-	log.Printf("DEBUG: Model %s - creating all columns from catalog (%d catalog columns)", model.Name, len(catalogNode.Columns))
-	
 	for catalogColumnName, catalogColumn := range catalogNode.Columns {
 		// Create a new model column from catalog data
 		dataTypeCopy := catalogColumn.DataType // Create a copy of the string
@@ -78,16 +61,6 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 		if catalogColumn.OriginalName != "" {
 			originalNameCopy := catalogColumn.OriginalName
 			newColumn.OriginalName = &originalNameCopy
-			
-			// Debug: log OriginalName setting for specific columns
-			if strings.Contains(strings.ToLower(catalogColumnName), "buying") {
-				log.Printf("DEBUG ORIGINAL: Column '%s' -> OriginalName '%s'", catalogColumnName, catalogColumn.OriginalName)
-			}
-		}
-		
-		// Debug: log what we're setting for ARRAY columns
-		if catalogColumn.DataType != "" && strings.HasPrefix(strings.ToUpper(catalogColumn.DataType), "ARRAY") {
-			log.Printf("DEBUG CREATE: Creating column %s with DataType: '%s'", catalogColumnName, catalogColumn.DataType)
 		}
 		
 		newColumn.ProcessColumn()
@@ -95,29 +68,6 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 	}
 
 	processedModel.Columns = processedColumns
-	
-	// Debug: check final processed model - specifically look for our expected columns
-	if strings.Contains(model.Name, "dq_ICASOI_Current") {
-		expectedArrayCols := []string{"format", "supplierinformation", "markings.marking"}
-		arrayCount := 0
-		
-		log.Printf("DEBUG FINAL: Checking final model %s with %d total columns", model.Name, len(processedModel.Columns))
-		
-		for _, expectedCol := range expectedArrayCols {
-			if col, exists := processedModel.Columns[expectedCol]; exists {
-				if col.DataType != nil && strings.HasPrefix(strings.ToUpper(*col.DataType), "ARRAY") {
-					log.Printf("DEBUG FINAL: ✅ Found expected ARRAY column %s with type %s", expectedCol, *col.DataType)
-					arrayCount++
-				} else {
-					log.Printf("DEBUG FINAL: ❌ Found column %s but DataType is %v", expectedCol, col.DataType)
-				}
-			} else {
-				log.Printf("DEBUG FINAL: ❌ Missing expected column %s", expectedCol)
-			}
-		}
-		
-		log.Printf("DEBUG FINAL: Final processed model %s has %d expected ARRAY columns", model.Name, arrayCount)
-	}
 	
 	return &processedModel, nil
 }

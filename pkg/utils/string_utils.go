@@ -6,6 +6,23 @@ import (
 	"unicode"
 )
 
+// Pre-compiled regular expressions for CamelToSnake conversion
+// These are compiled once at package initialization for better performance
+var (
+	// camelToSnakeReg1 handles acronym-word combinations like GTINId, GTINType
+	// Inserts underscore between consecutive uppercase letters followed by lowercase
+	camelToSnakeReg1 = regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`)
+	
+	// camelToSnakeReg2 inserts underscore before uppercase letters that follow lowercase letters or digits
+	camelToSnakeReg2 = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	
+	// camelToSnakeReg3 handles remaining CamelCase patterns
+	camelToSnakeReg3 = regexp.MustCompile(`(.)([A-Z][a-z]+)`)
+	
+	// camelToSnakeReg4 cleans up multiple consecutive underscores
+	camelToSnakeReg4 = regexp.MustCompile(`_+`)
+)
+
 // CamelToSnake converts CamelCase to snake_case
 // Handles complex cases like SupplierInformation -> supplier_information, GTINId -> gtin_id
 func CamelToSnake(s string) string {
@@ -13,22 +30,10 @@ func CamelToSnake(s string) string {
 		return s
 	}
 
-	// Handle acronym-word combinations like GTINId, GTINType
-	// Insert underscore between consecutive uppercase letters followed by lowercase
-	reg1 := regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`)
-	s1 := reg1.ReplaceAllString(s, `${1}_${2}`)
-	
-	// Insert underscore before uppercase letters that follow lowercase letters or digits
-	reg2 := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	s2 := reg2.ReplaceAllString(s1, `${1}_${2}`)
-	
-	// Handle remaining CamelCase patterns
-	reg3 := regexp.MustCompile(`(.)([A-Z][a-z]+)`)
-	s3 := reg3.ReplaceAllString(s2, `${1}_${2}`)
-	
-	// Clean up multiple consecutive underscores
-	reg4 := regexp.MustCompile(`_+`)
-	s4 := reg4.ReplaceAllString(s3, `_`)
+	s1 := camelToSnakeReg1.ReplaceAllString(s, `${1}_${2}`)
+	s2 := camelToSnakeReg2.ReplaceAllString(s1, `${1}_${2}`)
+	s3 := camelToSnakeReg3.ReplaceAllString(s2, `${1}_${2}`)
+	s4 := camelToSnakeReg4.ReplaceAllString(s3, `_`)
 	
 	return strings.ToLower(s4)
 }
@@ -222,11 +227,6 @@ func ToLookMLName(s string) string {
 	
 	// Join with double underscores (LookML convention for nested fields)
 	lookmlName := strings.Join(convertedParts, "__")
-	
-	// Debug: log the conversion for testing
-	if strings.Contains(s, "supplier") || strings.Contains(s, "Supplier") {
-		println("DEBUG ToLookMLName:", s, "->", lookmlName)
-	}
 	
 	// Sanitize any remaining special characters (but preserve underscores)
 	reg := regexp.MustCompile(`[^a-zA-Z0-9_]`)

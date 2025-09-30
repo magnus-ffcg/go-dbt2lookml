@@ -3,9 +3,8 @@ package parsers
 import (
 	"testing"
 
-	"github.com/magnus-ffcg/dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/enums"
-	"github.com/magnus-ffcg/dbt2lookml/pkg/parsers"
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
+	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +52,7 @@ func TestDbtParser_NewDbtParser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser, err := parsers.NewDbtParser(tt.config, tt.manifest, tt.catalog)
+			parser, err := NewDbtParser(tt.config, tt.manifest, tt.catalog)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -165,7 +164,7 @@ func TestDbtParser_ModelFiltering(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser, err := parsers.NewDbtParser(tt.config, manifest, catalog)
+			parser, err := NewDbtParser(tt.config, manifest, catalog)
 			require.NoError(t, err)
 			require.NotNil(t, parser)
 
@@ -216,8 +215,8 @@ func TestDbtParser_ErrorHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser, err := parsers.NewDbtParser(tt.config, tt.manifest, tt.catalog)
-			
+			parser, err := NewDbtParser(tt.config, tt.manifest, tt.catalog)
+
 			// Parser creation might succeed even with malformed data
 			if err == nil && parser != nil {
 				// But GetModels should handle errors gracefully
@@ -258,7 +257,7 @@ func TestSupportedAdapters(t *testing.T) {
 				"nodes": map[string]interface{}{},
 			}
 
-			parser, err := parsers.NewDbtParser(&config.Config{}, manifest, map[string]interface{}{})
+			parser, err := NewDbtParser(&config.Config{}, manifest, map[string]interface{}{})
 
 			if tt.expectError {
 				assert.Error(t, err)

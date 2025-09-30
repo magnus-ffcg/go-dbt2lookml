@@ -44,3 +44,5 @@ temp/
 # Configuration files (may contain sensitive data)
 *.config
 local.config
+
+real_samples/
