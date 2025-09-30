@@ -1,3 +1,30 @@
+// Package parsers provides functionality for parsing dbt manifest and catalog files.
+//
+// This package handles reading and parsing dbt's generated JSON files (manifest.json
+// and catalog.json) into Go structs for further processing. It manages the complex
+// task of merging catalog metadata with manifest model definitions.
+//
+// Key components:
+//   - DbtParser: Main coordinator for parsing dbt artifacts
+//   - ModelParser: Parses dbt model definitions
+//   - CatalogParser: Parses dbt catalog metadata
+//   - ExposureParser: Parses dbt exposure definitions
+//
+// The parser supports:
+//   - BigQuery data types and nested structures
+//   - Column metadata and descriptions
+//   - Model relationships and dependencies
+//   - Custom meta tags for LookML generation
+//   - Filtering by tags and model selection
+//
+// Example usage:
+//
+//	cfg := &config.Config{
+//	    ManifestPath: "./target/manifest.json",
+//	    CatalogPath:  "./target/catalog.json",
+//	}
+//	parser := NewDbtParser(cfg)
+//	models, err := parser.Parse()
 package parsers
 
 import (

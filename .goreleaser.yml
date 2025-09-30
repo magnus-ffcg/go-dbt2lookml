@@ -1,0 +1,130 @@
+# GoReleaser configuration for dbt2lookml
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: dbt2lookml
+    main: ./cmd/dbt2lookml
+    binary: dbt2lookml
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - "7"
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: dbt2lookml
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: 'New Features'
+      regexp: '^feat:'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^fix:'
+      order: 1
+    - title: 'Performance Improvements'
+      regexp: '^perf:'
+      order: 2
+    - title: 'Documentation'
+      regexp: '^docs:'
+      order: 3
+    - title: 'Other Changes'
+      order: 999
+
+release:
+  github:
+    owner: magnus-ffcg
+    name: go-dbt2lookml
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  header: |
+    ## dbt2lookml {{.Version}}
+
+    Generate LookML views from dbt catalog and manifest files.
+
+    ### Installation
+
+    Download the appropriate binary for your platform from the assets below.
+
+    #### Quick Install
+    ```bash
+    # Download and extract
+    tar -xzf dbt2lookml_{{.Version}}_<OS>_<ARCH>.tar.gz
+    
+    # Move to PATH
+    sudo mv dbt2lookml /usr/local/bin/
+    
+    # Verify installation
+    dbt2lookml --version
+    ```
+
+    ### Usage
+    ```bash
+    dbt2lookml \
+      --manifest path/to/manifest.json \
+      --catalog path/to/catalog.json \
+      --output ./lookml-output
+    ```
+
+  footer: |
+    **Full Changelog**: https://github.com/magnus-ffcg/go-dbt2lookml/compare/{{.PreviousTag}}...{{.Tag}}
+
+# Homebrew tap (optional - uncomment and configure if needed)
+# brews:
+#   - repository:
+#       owner: magnus-ffcg
+#       name: homebrew-tap
+#     homepage: https://github.com/magnus-ffcg/go-dbt2lookml
+#     description: Generate LookML from dbt artifacts
+#     license: MIT
+#     test: |
+#       system "#{bin}/dbt2lookml --version"
+#     install: |
+#       bin.install "dbt2lookml"

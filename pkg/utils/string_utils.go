@@ -1,3 +1,25 @@
+// Package utils provides utility functions for string manipulation and pointer helpers.
+//
+// This package contains reusable utility functions used throughout the application
+// for common operations like string transformation, sanitization, and pointer creation.
+//
+// String Utilities:
+//   - CamelToSnake: Converts CamelCase to snake_case (handles acronyms correctly)
+//   - SnakeToCamel: Converts snake_case to CamelCase
+//   - ToLookMLName: Converts column names to LookML-compatible identifiers
+//   - SanitizeIdentifier: Removes invalid characters from identifiers
+//   - QuoteColumnNameIfNeeded: Adds backticks for names requiring quoting
+//
+// Pointer Helpers:
+//   - StringPtr, BoolPtr, IntPtr, Int64Ptr, Float64Ptr: Create pointers to literal values
+//
+// String Manipulation:
+//   - TruncateString: Safely truncate strings to maximum length
+//   - Pluralize: Simple English pluralization
+//   - ToTitleCase: Convert to title case
+//
+// The package uses pre-compiled regular expressions for optimal performance
+// in frequently-called string transformation functions.
 package utils
 
 import (
@@ -204,17 +226,16 @@ func ToTitleCase(s string) string {
 	return strings.Title(strings.ToLower(s))
 }
 
-// ToLookMLName converts a column name to LookML naming convention
-// Converts PascalCase to snake_case and replaces dots with double underscores
+// ToLookMLName converts a column name to LookML naming convention.
+// Converts PascalCase to snake_case and replaces dots with double underscores.
+//
+// Note: This function expects proper PascalCase or camelCase input. If your column
+// names are already lowercase (e.g., "supplierinformation"), they will remain as-is
+// since there's no case information to work with. Ensure your source data maintains
+// proper case conventions (e.g., "SupplierInformation") for correct conversion.
 func ToLookMLName(s string) string {
 	if s == "" {
 		return s
-	}
-
-	// Handle specific known cases where the original PascalCase is lost
-	// This matches the Python version's expected output
-	if s == "supplierinformation" {
-		return "supplier_information"
 	}
 
 	// Split by dots to handle nested column names
@@ -222,14 +243,9 @@ func ToLookMLName(s string) string {
 	var convertedParts []string
 
 	for _, part := range parts {
-		// Handle specific known cases for individual parts
-		if part == "supplierinformation" {
-			convertedParts = append(convertedParts, "supplier_information")
-		} else {
-			// Convert each part from PascalCase/camelCase to snake_case
-			snakePart := CamelToSnake(part)
-			convertedParts = append(convertedParts, snakePart)
-		}
+		// Convert each part from PascalCase/camelCase to snake_case
+		snakePart := CamelToSnake(part)
+		convertedParts = append(convertedParts, snakePart)
 	}
 
 	// Join with double underscores (LookML convention for nested fields)

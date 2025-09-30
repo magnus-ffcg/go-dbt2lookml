@@ -1,0 +1,45 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+# Note: IDE schema warnings can be ignored - this config works with golangci-lint v1.55+
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    # Enabled by default
+    - errcheck      # Check for unchecked errors
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Check for unused code
+    
+    # Additional linters
+    - goconst       # Find repeated strings
+    - gocyclo       # Check cyclomatic complexity
+    - dupl          # Check for duplicate code
+    - misspell      # Check for misspelled words
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  
+  dupl:
+    threshold: 100
+  
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-dirs:
+    - tests/fixtures
+  
+  exclude-files:
+    - ".*\\.pb\\.go$"
+  
+  max-issues-per-linter: 0
+  max-same-issues: 0

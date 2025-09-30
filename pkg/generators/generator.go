@@ -1,3 +1,31 @@
+// Package generators provides LookML generation functionality from dbt models.
+//
+// This package contains the core logic for transforming dbt catalog and manifest
+// data into LookML view files. It handles dimension generation, measure creation,
+// explore definitions, and nested view structures.
+//
+// Key components:
+//   - LookMLGenerator: Main coordinator for generating all LookML files
+//   - ViewGenerator: Generates LookML views from dbt models
+//   - DimensionGenerator: Creates dimensions and dimension groups
+//   - MeasureGenerator: Generates measures from metadata
+//   - ExploreGenerator: Creates explores with join relationships
+//
+// The package supports:
+//   - BigQuery nested/repeated columns (STRUCT/ARRAY)
+//   - Custom LookML metadata via dbt meta tags
+//   - Dimension groups for date/timestamp fields
+//   - Automatic and custom measure generation
+//   - Context-aware cancellation for long operations
+//
+// Example usage:
+//
+//	cfg := &config.Config{
+//	    OutputDir:    "./output",
+//	    UseTableName: false,
+//	}
+//	generator := NewLookMLGenerator(cfg)
+//	filesGenerated, err := generator.GenerateAll(models)
 package generators
 
 import (

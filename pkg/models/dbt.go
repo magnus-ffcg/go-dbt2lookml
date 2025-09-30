@@ -1,3 +1,30 @@
+// Package models defines data structures for dbt and LookML representations.
+//
+// This package contains the domain models used throughout the application,
+// including dbt artifacts (models, columns, metadata) and LookML structures
+// (views, dimensions, measures, explores).
+//
+// dbt Models:
+//   - DbtModel: Represents a dbt model with columns and metadata
+//   - DbtModelColumn: Column definition with data type and metadata
+//   - DbtCatalog: Parsed catalog.json structure
+//   - DbtManifest: Parsed manifest.json structure
+//   - DbtExposure: dbt exposure definitions
+//
+// LookML Models:
+//   - LookMLView: Complete LookML view structure
+//   - LookMLDimension: Dimension field definition
+//   - LookMLDimensionGroup: Dimension group for dates/timestamps
+//   - LookMLMeasure: Measure field definition
+//   - LookMLExplore: Explore with joins
+//
+// Metadata:
+//   - DbtMetaLooker: Custom LookML metadata from dbt meta tags
+//   - DbtMetaLookerDimension: Dimension-specific metadata
+//   - DbtMetaLookerMeasure: Measure-specific metadata
+//
+// All LookML models include Validate() methods to ensure data integrity
+// before generation.
 package models
 
 import (

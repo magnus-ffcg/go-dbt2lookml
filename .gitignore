@@ -51,4 +51,8 @@ dbt2lookml
 
 .cursor
 .windsurf
-.work
+
+# Ignore .work directory but allow docs
+.work/*
+!.work/docs/
+!.work/docs/**
