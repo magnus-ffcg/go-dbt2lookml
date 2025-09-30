@@ -90,7 +90,7 @@ func TestDimensionGenerator_GenerateDimension(t *testing.T) {
 
 			dimension, err := generator.GenerateDimension(model, tt.column)
 			require.NoError(t, err)
-			
+
 			// Skip if this should be a dimension group (returns nil)
 			if dimension == nil {
 				t.Skip("Column should be dimension group, not dimension")
@@ -150,7 +150,7 @@ func TestDimensionGenerator_DataTypeMapping(t *testing.T) {
 
 			dimension, err := generator.GenerateDimension(model, column)
 			require.NoError(t, err)
-			
+
 			// Skip if this should be a dimension group
 			if dimension == nil {
 				t.Skip("Column should be dimension group, not dimension")
@@ -205,7 +205,7 @@ func TestDimensionGenerator_SQLGeneration(t *testing.T) {
 
 			dimension, err := generator.GenerateDimension(model, tt.column)
 			require.NoError(t, err)
-			
+
 			// Skip if this should be a dimension group
 			if dimension == nil {
 				t.Skip("Column should be dimension group, not dimension")
@@ -260,7 +260,7 @@ func TestDimensionGenerator_NestedColumnNaming(t *testing.T) {
 
 			dimension, err := generator.GenerateDimension(model, column)
 			require.NoError(t, err)
-			
+
 			// Skip if this should be a dimension group
 			if dimension == nil {
 				t.Skip("Column should be dimension group, not dimension")
@@ -344,10 +344,10 @@ func TestDimensionGenerator_ArrayHandling(t *testing.T) {
 	generator := NewDimensionGenerator(cfg)
 
 	tests := []struct {
-		name           string
-		dataType       string
-		expectHidden   bool
-		expectedType   string
+		name         string
+		dataType     string
+		expectHidden bool
+		expectedType string
 	}{
 		{
 			name:         "simple array",
@@ -385,7 +385,7 @@ func TestDimensionGenerator_ArrayHandling(t *testing.T) {
 
 			dimension, err := generator.GenerateDimension(model, column)
 			require.NoError(t, err)
-			
+
 			// Skip if this should be a dimension group
 			if dimension == nil {
 				t.Skip("Column should be dimension group, not dimension")
@@ -538,7 +538,7 @@ func TestDimensionGenerator_DimensionGroups(t *testing.T) {
 				Name:     "order_date",
 				DataType: stringPtr("DATE"),
 			},
-			expectedGroupName: "order",        // _date suffix removed
+			expectedGroupName: "order", // _date suffix removed
 			expectedType:      "time",
 			hasTimeframes:     true,
 		},
@@ -585,7 +585,7 @@ func TestDimensionGenerator_DimensionGroups(t *testing.T) {
 
 			assert.Equal(t, tt.expectedGroupName, dimensionGroup.Name)
 			assert.Equal(t, tt.expectedType, dimensionGroup.Type)
-			
+
 			if tt.hasTimeframes {
 				assert.NotEmpty(t, dimensionGroup.Timeframes, "Should have timeframes")
 			}
@@ -631,7 +631,7 @@ func TestDimensionGenerator_GroupLabels(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := generator.GetDimensionGroupLabel(tt.column)
-			
+
 			if tt.expectedGroupLabel == nil {
 				assert.Nil(t, result)
 			} else {

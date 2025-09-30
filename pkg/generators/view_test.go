@@ -127,7 +127,7 @@ func TestViewGenerator_GenerateView(t *testing.T) {
 
 				// Should have dimensions (at least for non-array columns)
 				assert.NotNil(t, view.Dimensions)
-				
+
 				// Should have measures (at least default count)
 				assert.NotNil(t, view.Measures)
 				assert.Greater(t, len(view.Measures), 0, "Should have at least default count measure")
@@ -303,10 +303,10 @@ func TestViewGenerator_MeasureGeneration(t *testing.T) {
 	generator := NewViewGenerator(cfg)
 
 	tests := []struct {
-		name           string
-		model          *models.DbtModel
-		expectedCount  int
-		checkMeasures  func(*testing.T, []models.LookMLMeasure)
+		name          string
+		model         *models.DbtModel
+		expectedCount int
+		checkMeasures func(*testing.T, []models.LookMLMeasure)
 	}{
 		{
 			name: "model without metadata should have default count",
@@ -476,8 +476,8 @@ func TestViewGenerator_ErrorHandling(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "nil model should return error",
-			model: nil,
+			name:        "nil model should return error",
+			model:       nil,
 			expectError: true,
 		},
 		{
@@ -554,10 +554,10 @@ func TestViewGenerator_ConflictResolution(t *testing.T) {
 	generator := NewViewGenerator(cfg)
 
 	tests := []struct {
-		name               string
-		model              *models.DbtModel
-		expectedDimGroups  []string
-		noDimensions       bool // Date columns don't create dimensions, only dimension_groups
+		name              string
+		model             *models.DbtModel
+		expectedDimGroups []string
+		noDimensions      bool // Date columns don't create dimensions, only dimension_groups
 	}{
 		{
 			name: "date column creates dimension_group only (no conflict)",
@@ -712,12 +712,12 @@ func TestViewGenerator_NestedViewReferenceDimensions(t *testing.T) {
 	generator := NewViewGenerator(cfg)
 
 	tests := []struct {
-		name                  string
-		model                 *models.DbtModel
-		expectedRefDimension  string
-		checkHidden           bool
-		checkSQL              bool
-		expectedSQLContains   string
+		name                 string
+		model                *models.DbtModel
+		expectedRefDimension string
+		checkHidden          bool
+		checkSQL             bool
+		expectedSQLContains  string
 	}{
 		{
 			name: "simple array column gets reference dimension",

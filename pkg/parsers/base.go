@@ -38,9 +38,9 @@ import (
 
 // DbtParser is the main DBT parser that coordinates parsing of manifest and catalog files
 type DbtParser struct {
-	config      *config.Config         // Configuration with CLI arguments
-	rawManifest map[string]interface{} // Raw manifest data
-	catalog     *models.DbtCatalog
+	config         *config.Config         // Configuration with CLI arguments
+	rawManifest    map[string]interface{} // Raw manifest data
+	catalog        *models.DbtCatalog
 	modelParser    *ModelParser
 	catalogParser  *CatalogParser
 	exposureParser *ExposureParser
@@ -53,7 +53,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal catalog: %w", err)
 	}
-	
+
 	var catalog models.DbtCatalog
 	if err := json.Unmarshal(catalogBytes, &catalog); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal catalog: %w", err)
@@ -64,7 +64,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal manifest: %w", err)
 	}
-	
+
 	var manifest models.DbtManifest
 	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
@@ -106,7 +106,7 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 
 	// Filter models based on criteria
 	filteredModels := p.modelParser.FilterModels(allModels, ModelFilterOptions{
-		SelectModel:    p.getSelectModel(),
+		SelectModel:   p.getSelectModel(),
 		Tag:           p.getTag(),
 		ExposedNames:  exposedNames,
 		IncludeModels: p.getIncludeModels(),
@@ -121,7 +121,7 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 		if processedModel, err := p.catalogParser.ProcessModelColumns(model); err == nil && processedModel != nil {
 			// Store catalog data reference for generators (would need proper implementation)
 			// processedModel.CatalogData = p.catalogParser.rawCatalogData
-			
+
 			// Store original raw manifest data for metadata extraction
 			if rawNodes, ok := p.rawManifest["nodes"].(map[string]interface{}); ok {
 				if manifestData, exists := rawNodes[model.UniqueID]; exists {
@@ -129,7 +129,7 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 					_ = manifestData // Placeholder
 				}
 			}
-			
+
 			processedModels = append(processedModels, processedModel)
 		} else {
 			failedModels = append(failedModels, model.Name)
@@ -146,7 +146,7 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 		if len(displayNames) > 5 {
 			displayNames = displayNames[:5]
 		}
-		
+
 		log.Printf("Failed to process %d models during catalog parsing: %v", failedCount, displayNames)
 		if len(failedModels) > 5 {
 			log.Printf("... and %d more", len(failedModels)-5)

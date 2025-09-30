@@ -60,10 +60,10 @@ func (g *ExploreGenerator) getExploreViewName(model *models.DbtModel) string {
 // getExploreLabel gets the explore label
 func (g *ExploreGenerator) getExploreLabel(model *models.DbtModel) *string {
 	// Check if there's a custom label in model meta
-	if model.Meta != nil && 
-	   model.Meta.Looker != nil && 
-	   model.Meta.Looker.View != nil && 
-	   model.Meta.Looker.View.Label != nil {
+	if model.Meta != nil &&
+		model.Meta.Looker != nil &&
+		model.Meta.Looker.View != nil &&
+		model.Meta.Looker.View.Label != nil {
 		return model.Meta.Looker.View.Label
 	}
 
@@ -79,12 +79,12 @@ func (g *ExploreGenerator) getExploreDescription(model *models.DbtModel) *string
 	if model.Description != "" {
 		return &model.Description
 	}
-	
+
 	// Check meta description
-	if model.Meta != nil && 
-	   model.Meta.Looker != nil && 
-	   model.Meta.Looker.View != nil && 
-	   model.Meta.Looker.View.Description != nil {
+	if model.Meta != nil &&
+		model.Meta.Looker != nil &&
+		model.Meta.Looker.View != nil &&
+		model.Meta.Looker.View.Description != nil {
 		return model.Meta.Looker.View.Description
 	}
 
@@ -93,10 +93,10 @@ func (g *ExploreGenerator) getExploreDescription(model *models.DbtModel) *string
 
 // getExploreHidden gets the explore hidden setting
 func (g *ExploreGenerator) getExploreHidden(model *models.DbtModel) *bool {
-	if model.Meta != nil && 
-	   model.Meta.Looker != nil && 
-	   model.Meta.Looker.View != nil && 
-	   model.Meta.Looker.View.Hidden != nil {
+	if model.Meta != nil &&
+		model.Meta.Looker != nil &&
+		model.Meta.Looker.View != nil &&
+		model.Meta.Looker.View.Hidden != nil {
 		return model.Meta.Looker.View.Hidden
 	}
 	return nil
@@ -105,28 +105,28 @@ func (g *ExploreGenerator) getExploreHidden(model *models.DbtModel) *bool {
 // getExploreJoins gets the joins for the explore from model metadata and generates nested view joins
 func (g *ExploreGenerator) getExploreJoins(model *models.DbtModel) []models.LookMLJoin {
 	var joins []models.LookMLJoin
-	
+
 	// Convert metadata joins to LookML joins if available
-	if model.Meta != nil && 
-	   model.Meta.Looker != nil && 
-	   len(model.Meta.Looker.Joins) > 0 {
+	if model.Meta != nil &&
+		model.Meta.Looker != nil &&
+		len(model.Meta.Looker.Joins) > 0 {
 		for _, metaJoin := range model.Meta.Looker.Joins {
 			lookmlJoin := g.convertMetaJoinToLookMLJoin(metaJoin)
 			joins = append(joins, lookmlJoin)
 		}
 	}
-	
+
 	// Generate automatic joins for nested views (ARRAY columns)
 	nestedViewJoins := g.generateNestedViewJoins(model)
 	joins = append(joins, nestedViewJoins...)
-	
+
 	return joins
 }
 
 // convertMetaJoinToLookMLJoin converts a metadata join to a LookML join
 func (g *ExploreGenerator) convertMetaJoinToLookMLJoin(metaJoin models.DbtMetaLookerJoin) models.LookMLJoin {
 	return models.LookMLJoin{
-		Name:         "", // Would need to be derived from JoinModel
+		Name:         "",  // Would need to be derived from JoinModel
 		ViewLabel:    nil, // Not available in metadata join
 		SQL:          metaJoin.SQLON,
 		Type:         metaJoin.Type,
@@ -137,16 +137,16 @@ func (g *ExploreGenerator) convertMetaJoinToLookMLJoin(metaJoin models.DbtMetaLo
 // generateNestedViewJoins generates joins for nested views based on ARRAY columns
 func (g *ExploreGenerator) generateNestedViewJoins(model *models.DbtModel) []models.LookMLJoin {
 	var joins []models.LookMLJoin
-	
+
 	// Use column collections to identify ARRAY columns that need nested view joins
 	columnCollections := models.NewColumnCollections(model, nil)
-	
+
 	// Generate a join for each nested view
 	for arrayColumnName := range columnCollections.NestedViewColumns {
 		join := g.createNestedViewJoin(model, arrayColumnName)
 		joins = append(joins, join)
 	}
-	
+
 	return joins
 }
 
@@ -154,16 +154,16 @@ func (g *ExploreGenerator) generateNestedViewJoins(model *models.DbtModel) []mod
 func (g *ExploreGenerator) createNestedViewJoin(model *models.DbtModel, arrayColumnName string) models.LookMLJoin {
 	// Generate view name for the nested view
 	nestedViewName := g.getNestedViewName(model, arrayColumnName)
-	
+
 	// Generate view label
 	viewLabel := g.getNestedViewLabel(model, arrayColumnName)
-	
+
 	// Generate SQL for the join
 	sql := g.getNestedViewJoinSQL(model, arrayColumnName, nestedViewName)
-	
+
 	// Create relationship enum value
 	relationship := enums.LookerRelationshipType("one_to_many")
-	
+
 	return models.LookMLJoin{
 		Name:         nestedViewName,
 		ViewLabel:    &viewLabel,
@@ -175,7 +175,7 @@ func (g *ExploreGenerator) createNestedViewJoin(model *models.DbtModel, arrayCol
 // getNestedViewName generates the view name for a nested view join
 func (g *ExploreGenerator) getNestedViewName(model *models.DbtModel, arrayColumnName string) string {
 	var baseName string
-	
+
 	if g.config.UseTableName {
 		// Extract just the table name from relation_name
 		parts := strings.Split(model.RelationName, ".")
@@ -185,7 +185,7 @@ func (g *ExploreGenerator) getNestedViewName(model *models.DbtModel, arrayColumn
 	} else {
 		baseName = model.Name
 	}
-	
+
 	// Create nested view name by converting to LookML naming convention
 	// This handles PascalCase -> snake_case conversion (SupplierInformation -> supplier_information)
 	nestedSuffix := utils.ToLookMLName(arrayColumnName)
@@ -197,10 +197,10 @@ func (g *ExploreGenerator) getNestedViewLabel(model *models.DbtModel, arrayColum
 	// Use the same naming logic as explore names for consistency
 	baseName := g.getExploreName(model)
 	modelLabel := strings.Title(strings.ReplaceAll(baseName, "_", " "))
-	
+
 	// Convert array column name to title case
 	arrayLabel := strings.Title(strings.ReplaceAll(strings.ReplaceAll(arrayColumnName, ".", " "), "_", " "))
-	
+
 	return fmt.Sprintf("%s: %s", modelLabel, arrayLabel)
 }
 
@@ -208,10 +208,10 @@ func (g *ExploreGenerator) getNestedViewLabel(model *models.DbtModel, arrayColum
 func (g *ExploreGenerator) getNestedViewJoinSQL(model *models.DbtModel, arrayColumnName string, nestedViewName string) string {
 	// Generate the main view reference using the same logic as explore/view names
 	mainViewName := g.getExploreName(model)
-	
+
 	// Convert array column name to LookML reference (dots to double underscores)
 	arrayFieldRef := strings.ReplaceAll(arrayColumnName, ".", "__")
-	
+
 	return fmt.Sprintf("LEFT JOIN UNNEST(${%s.%s}) as %s", mainViewName, arrayFieldRef, nestedViewName)
 }
 
@@ -245,7 +245,7 @@ func (g *ExploreGenerator) generateAutoJoins(model *models.DbtModel, relatedMode
 		if strings.HasSuffix(column.Name, "_id") {
 			// Extract the potential table name
 			tableName := strings.TrimSuffix(column.Name, "_id")
-			
+
 			// Find matching model
 			for _, relatedModel := range relatedModels {
 				if g.isRelatedModel(tableName, relatedModel) {
@@ -265,8 +265,8 @@ func (g *ExploreGenerator) generateAutoJoins(model *models.DbtModel, relatedMode
 // isRelatedModel checks if a table name matches a related model
 func (g *ExploreGenerator) isRelatedModel(tableName string, model *models.DbtModel) bool {
 	// Simple matching - could be made more sophisticated
-	return strings.Contains(model.Name, tableName) || 
-		   strings.Contains(model.RelationName, tableName)
+	return strings.Contains(model.Name, tableName) ||
+		strings.Contains(model.RelationName, tableName)
 }
 
 // createAutoJoin creates an automatic join for a foreign key relationship
@@ -279,7 +279,7 @@ func (g *ExploreGenerator) createAutoJoin(fkColumn models.DbtModelColumn, relate
 			break
 		}
 	}
-	
+
 	// Default to "id" if no primary key found
 	if pkColumnName == "" {
 		pkColumnName = "id"
@@ -318,7 +318,7 @@ func (g *ExploreGenerator) ValidateExplore(explore *models.LookMLExplore) []stri
 	//	if join.Name == "" {
 	//		issues = append(issues, fmt.Sprintf("join %d: name cannot be empty", i))
 	//	}
-	//	
+	//
 	//	if join.SQL == nil || *join.SQL == "" {
 	//		issues = append(issues, fmt.Sprintf("join %d: sql cannot be empty", i))
 	//	}

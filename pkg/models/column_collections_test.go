@@ -49,14 +49,14 @@ func TestColumnCollections_NewColumnCollections(t *testing.T) {
 	// Test main view columns - should exclude ARRAY columns
 	assert.Contains(t, collections.MainViewColumns, "id")
 	assert.Contains(t, collections.MainViewColumns, "name")
-	assert.NotContains(t, collections.MainViewColumns, "sales")     // ARRAY should be excluded
-	assert.NotContains(t, collections.MainViewColumns, "tags")     // ARRAY should be excluded
+	assert.NotContains(t, collections.MainViewColumns, "sales")        // ARRAY should be excluded
+	assert.NotContains(t, collections.MainViewColumns, "tags")         // ARRAY should be excluded
 	assert.NotContains(t, collections.MainViewColumns, "sales.amount") // Nested should be excluded
 
 	// Test nested view columns - should contain ARRAY columns
 	assert.Contains(t, collections.NestedViewColumns, "sales")
 	assert.Contains(t, collections.NestedViewColumns, "tags")
-	
+
 	// Check that sales nested view contains its children
 	if salesNested, exists := collections.NestedViewColumns["sales"]; exists {
 		assert.Contains(t, salesNested, "sales.amount")
@@ -175,7 +175,7 @@ func TestColumnCollections_ArrayClassification(t *testing.T) {
 
 			// Check main view columns
 			for _, expectedCol := range tt.expectedMainView {
-				assert.Contains(t, collections.MainViewColumns, expectedCol, 
+				assert.Contains(t, collections.MainViewColumns, expectedCol,
 					"Expected %s to be in MainViewColumns", expectedCol)
 			}
 
@@ -288,7 +288,7 @@ func TestColumnCollections_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			collections := NewColumnCollections(tt.model, nil)
-			
+
 			if tt.wantErr {
 				assert.Nil(t, collections)
 			} else {
@@ -359,11 +359,11 @@ func TestColumnCollections_NonArrayStructHandling(t *testing.T) {
 
 	// Actual behavior: Non-ARRAY STRUCT parent is not in main view, only nested fields
 	assert.NotContains(t, collections.MainViewColumns, "metadata")
-	
+
 	// Nested fields of non-ARRAY STRUCT should be in main view
 	assert.Contains(t, collections.MainViewColumns, "metadata.version")
 	assert.Contains(t, collections.MainViewColumns, "metadata.name")
-	
+
 	// Should not create nested views for non-ARRAY STRUCT
 	assert.NotContains(t, collections.NestedViewColumns, "metadata")
 }

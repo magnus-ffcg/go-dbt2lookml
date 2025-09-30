@@ -21,20 +21,20 @@ func NewExposureParser(manifest *models.DbtManifest) *ExposureParser {
 // GetExposures gets exposure names, optionally filtered by tag
 func (p *ExposureParser) GetExposures(tag string) []string {
 	var exposureNames []string
-	
+
 	for _, exposure := range p.manifest.Exposures {
 		// If no tag filter specified, include all exposures
 		if tag == "" {
 			exposureNames = append(exposureNames, p.getExposedModelNames(exposure)...)
 			continue
 		}
-		
+
 		// Check if exposure has the specified tag
 		if p.hasTag(exposure, tag) {
 			exposureNames = append(exposureNames, p.getExposedModelNames(exposure)...)
 		}
 	}
-	
+
 	// Remove duplicates
 	return p.removeDuplicates(exposureNames)
 }
@@ -52,35 +52,35 @@ func (p *ExposureParser) GetExposureByName(name string) (*models.DbtExposure, bo
 // GetExposuresByTag gets all exposures with a specific tag
 func (p *ExposureParser) GetExposuresByTag(tag string) []models.DbtExposure {
 	var result []models.DbtExposure
-	
+
 	for _, exposure := range p.manifest.Exposures {
 		if p.hasTag(exposure, tag) {
 			result = append(result, exposure)
 		}
 	}
-	
+
 	return result
 }
 
 // GetAllExposures gets all exposures from the manifest
 func (p *ExposureParser) GetAllExposures() []models.DbtExposure {
 	var result []models.DbtExposure
-	
+
 	for _, exposure := range p.manifest.Exposures {
 		result = append(result, exposure)
 	}
-	
+
 	return result
 }
 
 // getExposedModelNames extracts model names from an exposure's refs
 func (p *ExposureParser) getExposedModelNames(exposure models.DbtExposure) []string {
 	var modelNames []string
-	
+
 	for _, ref := range exposure.Refs {
 		modelNames = append(modelNames, ref.Name)
 	}
-	
+
 	return modelNames
 }
 
@@ -98,14 +98,14 @@ func (p *ExposureParser) hasTag(exposure models.DbtExposure, tag string) bool {
 func (p *ExposureParser) removeDuplicates(slice []string) []string {
 	seen := make(map[string]bool)
 	var result []string
-	
+
 	for _, item := range slice {
 		if !seen[item] {
 			seen[item] = true
 			result = append(result, item)
 		}
 	}
-	
+
 	return result
 }
 
@@ -115,12 +115,12 @@ func (p *ExposureParser) GetExposureModelDependencies(exposureName string) ([]st
 	if !found {
 		return nil, false
 	}
-	
+
 	var dependencies []string
-	
+
 	// Add direct refs
 	dependencies = append(dependencies, p.getExposedModelNames(*exposure)...)
-	
+
 	// Add dependencies from depends_on.nodes (filter for models only)
 	for _, nodeID := range exposure.DependsOn.Nodes {
 		// Extract model name from node ID (format: model.project.model_name)
@@ -130,7 +130,7 @@ func (p *ExposureParser) GetExposureModelDependencies(exposureName string) ([]st
 			dependencies = append(dependencies, modelName)
 		}
 	}
-	
+
 	return p.removeDuplicates(dependencies), true
 }
 
@@ -140,22 +140,22 @@ func (p *ExposureParser) ValidateExposureRefs(modelNames []string) map[string][]
 	for _, name := range modelNames {
 		modelSet[name] = true
 	}
-	
+
 	invalidRefs := make(map[string][]string)
-	
+
 	for exposureName, exposure := range p.manifest.Exposures {
 		var invalid []string
-		
+
 		for _, ref := range exposure.Refs {
 			if !modelSet[ref.Name] {
 				invalid = append(invalid, ref.Name)
 			}
 		}
-		
+
 		if len(invalid) > 0 {
 			invalidRefs[exposureName] = invalid
 		}
 	}
-	
+
 	return invalidRefs
 }

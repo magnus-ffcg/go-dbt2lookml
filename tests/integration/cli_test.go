@@ -16,7 +16,7 @@ func TestConfigStructure(t *testing.T) {
 	// Test that we can create a config with all the expected fields
 	cfg := &config.Config{
 		ManifestPath:       "test_manifest.json",
-		CatalogPath:        "test_catalog.json", 
+		CatalogPath:        "test_catalog.json",
 		TargetDir:          "test_target",
 		OutputDir:          "test_output",
 		Tag:                "analytics",
@@ -61,7 +61,7 @@ func TestConfigFileParsing(t *testing.T) {
 	// Create temporary config file
 	tempDir := t.TempDir()
 	configFile := filepath.Join(tempDir, "config.yaml")
-	
+
 	configContent := `
 manifest_path: "config_manifest.json"
 catalog_path: "config_catalog.json"
@@ -83,22 +83,22 @@ remove_schema_string: "schema_prefix"
 exposures_only: false
 exposures_tag: "dashboard"
 `
-	
+
 	err := os.WriteFile(configFile, []byte(configContent), 0644)
 	require.NoError(t, err)
-	
+
 	// Reset viper for clean test
 	viper.Reset()
 	viper.SetConfigFile(configFile)
-	
+
 	err = viper.ReadInConfig()
 	require.NoError(t, err)
-	
+
 	// Test loading config using the actual LoadConfig function
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
-	
+
 	// Verify config values
 	assert.Equal(t, "config_manifest.json", cfg.ManifestPath)
 	assert.Equal(t, "config_catalog.json", cfg.CatalogPath)
@@ -166,7 +166,7 @@ func TestConfigValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -183,27 +183,27 @@ func TestConfigValidation(t *testing.T) {
 func TestConfigDefaults(t *testing.T) {
 	// Reset viper for clean test
 	viper.Reset()
-	
+
 	// Create minimal config file with only required fields
 	tempDir := t.TempDir()
 	configFile := filepath.Join(tempDir, "minimal_config.yaml")
-	
+
 	configContent := `
 manifest_path: "manifest.json"
 catalog_path: "catalog.json"
 `
-	
+
 	err := os.WriteFile(configFile, []byte(configContent), 0644)
 	require.NoError(t, err)
-	
+
 	viper.SetConfigFile(configFile)
 	err = viper.ReadInConfig()
 	require.NoError(t, err)
-	
+
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
-	
+
 	// Check default values are set
 	assert.Equal(t, ".", cfg.TargetDir, "Should have default target directory")
 	assert.Equal(t, ".", cfg.OutputDir, "Should have default output directory")

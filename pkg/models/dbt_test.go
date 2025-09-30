@@ -72,13 +72,13 @@ func TestDbtModelColumn_ProcessColumn(t *testing.T) {
 
 			assert.Equal(t, tt.expectedName, tt.column.Name)
 			assert.Equal(t, tt.expectedNested, tt.column.Nested)
-			
+
 			require.NotNil(t, tt.column.OriginalName)
 			assert.Equal(t, tt.expectedOriginalName, *tt.column.OriginalName)
-			
+
 			require.NotNil(t, tt.column.LookMLName)
 			assert.Equal(t, tt.expectedLookMLName, *tt.column.LookMLName)
-			
+
 			require.NotNil(t, tt.column.LookMLLongName)
 			assert.Equal(t, tt.expectedLongName, *tt.column.LookMLLongName)
 		})
@@ -90,9 +90,9 @@ func TestDbtModelColumn_DescriptionNotSet(t *testing.T) {
 	column := DbtModelColumn{
 		Name: "test",
 	}
-	
+
 	column.ProcessColumn()
-	
+
 	// Description should remain nil if not provided
 	assert.Nil(t, column.Description, "Description should not be auto-set")
 }
@@ -147,7 +147,7 @@ func TestDbtCatalogNodeColumn_ProcessColumnType(t *testing.T) {
 			column.ProcessColumnType()
 
 			assert.Equal(t, tt.expectedDataType, column.DataType)
-			
+
 			if tt.expectInnerTypes {
 				assert.NotEmpty(t, column.InnerTypes)
 			}
@@ -179,15 +179,15 @@ func TestDbtCatalogNode_NormalizeColumnNames(t *testing.T) {
 	// Check that keys are lowercase
 	_, hasUpperCase := node.Columns["CustomerID"]
 	assert.False(t, hasUpperCase, "Should not have uppercase key")
-	
+
 	_, hasLowerCase := node.Columns["customerid"]
 	assert.True(t, hasLowerCase, "Should have lowercase key")
-	
+
 	// Check that original names are preserved
 	col := node.Columns["customerid"]
 	assert.Equal(t, "customerid", col.Name)
 	assert.Equal(t, "CustomerID", col.OriginalName)
-	
+
 	// Check already lowercase column
 	lowerCol := node.Columns["already_lowercase"]
 	assert.Equal(t, "already_lowercase", lowerCol.Name)
@@ -216,7 +216,7 @@ func TestDbtModel_NormalizeColumnNames(t *testing.T) {
 	assert.Contains(t, model.Columns, "mixedcase")
 	assert.Contains(t, model.Columns, "uppercase")
 	assert.Contains(t, model.Columns, "lowercase")
-	
+
 	// Original keys should not exist
 	assert.NotContains(t, model.Columns, "MixedCase")
 	assert.NotContains(t, model.Columns, "UPPERCASE")
@@ -296,7 +296,7 @@ func TestDbtExposureRef(t *testing.T) {
 func TestDbtExposure(t *testing.T) {
 	description := "Test exposure"
 	url := "https://example.com"
-	
+
 	exposure := DbtExposure{
 		DbtNode: DbtNode{
 			Name:         "test_exposure",

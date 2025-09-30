@@ -26,8 +26,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 
 	// Get all columns from the model
 	allColumns := model.Columns
-	
-	
 
 	// Build hierarchy map for proper nested array detection
 	hierarchy := buildHierarchyMap(allColumns)
@@ -59,7 +57,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 
 		// Find the most specific array parent
 		arrayParent := findArrayParent(colName, arrayModelNames)
-		
 
 		// Array parent columns need special handling
 		if arrayModelNames[colName] {
@@ -74,7 +71,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 
 			// Check if this array is itself a child of another array
 			isNestedArray := arrayParent != "" && arrayModelNames[arrayParent]
-			
 
 			if hasChildren {
 				// Array with children (ARRAY<STRUCT>): only create nested view, don't add to main view
@@ -112,7 +108,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 			mainViewColumns[colName] = column
 		}
 	}
-
 
 	return &ColumnCollections{
 		MainViewColumns:   mainViewColumns,

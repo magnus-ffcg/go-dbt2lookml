@@ -109,11 +109,11 @@ func TestFloat64Ptr(t *testing.T) {
 func TestPointerUniqueness(t *testing.T) {
 	s1 := StringPtr("test")
 	s2 := StringPtr("test")
-	
+
 	// Same value but different pointers
 	assert.Equal(t, *s1, *s2)
 	assert.NotSame(t, s1, s2, "Pointers should be different instances")
-	
+
 	// Modifying one doesn't affect the other
 	*s1 = "modified"
 	assert.Equal(t, "modified", *s1)

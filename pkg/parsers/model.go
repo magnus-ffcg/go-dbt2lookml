@@ -34,7 +34,7 @@ func NewModelParser(manifest *models.DbtManifest) *ModelParser {
 // GetAllModels gets all models from manifest
 func (p *ModelParser) GetAllModels() ([]*models.DbtModel, error) {
 	allModels := p.filterNodesByType(p.manifest.Nodes, string(enums.ResourceModel))
-	
+
 	// Validate models
 	var validModels []*models.DbtModel
 	for _, model := range allModels {
@@ -44,14 +44,14 @@ func (p *ModelParser) GetAllModels() ([]*models.DbtModel, error) {
 		}
 		validModels = append(validModels, model)
 	}
-	
+
 	return validModels, nil
 }
 
 // FilterModels filters models based on multiple criteria
 func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelFilterOptions) []*models.DbtModel {
 	filtered := modelsList
-	
+
 	// Single model selection takes precedence
 	if options.SelectModel != "" {
 		var result []*models.DbtModel
@@ -62,7 +62,7 @@ func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelF
 		}
 		return result
 	}
-	
+
 	// Filter by tag
 	if options.Tag != "" {
 		var result []*models.DbtModel
@@ -73,7 +73,7 @@ func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelF
 		}
 		filtered = result
 	}
-	
+
 	// Filter by exposed names
 	if len(options.ExposedNames) > 0 {
 		var result []*models.DbtModel
@@ -87,7 +87,7 @@ func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelF
 		}
 		filtered = result
 	}
-	
+
 	// Filter by include models
 	if len(options.IncludeModels) > 0 {
 		var result []*models.DbtModel
@@ -101,7 +101,7 @@ func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelF
 		}
 		filtered = result
 	}
-	
+
 	// Filter by exclude models
 	if len(options.ExcludeModels) > 0 {
 		var result []*models.DbtModel
@@ -119,21 +119,21 @@ func (p *ModelParser) FilterModels(modelsList []*models.DbtModel, options ModelF
 		}
 		filtered = result
 	}
-	
+
 	return filtered
 }
 
 // filterNodesByType filters nodes by resource type and ensures they have names
 func (p *ModelParser) filterNodesByType(nodes map[string]interface{}, resourceType string) []*models.DbtModel {
 	var result []*models.DbtModel
-	
+
 	for _, node := range nodes {
 		// Convert node to DbtModel
 		if model := p.convertToModel(node); model != nil && model.ResourceType == resourceType {
 			result = append(result, model)
 		}
 	}
-	
+
 	return result
 }
 
@@ -144,19 +144,19 @@ func (p *ModelParser) convertToModel(node interface{}) *models.DbtModel {
 	if err != nil {
 		return nil
 	}
-	
+
 	var model models.DbtModel
 	if err := json.Unmarshal(nodeBytes, &model); err != nil {
 		return nil
 	}
-	
+
 	// Process columns
 	model.NormalizeColumnNames()
 	for name, column := range model.Columns {
 		column.ProcessColumn()
 		model.Columns[name] = column
 	}
-	
+
 	return &model
 }
 
@@ -176,13 +176,13 @@ func (p *ModelParser) GetModelByName(name string) (*models.DbtModel, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	for _, model := range allModels {
 		if model.Name == name {
 			return model, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("model %q not found", name)
 }
 
@@ -192,13 +192,13 @@ func (p *ModelParser) GetModelsByTag(tag string) ([]*models.DbtModel, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var result []*models.DbtModel
 	for _, model := range allModels {
 		if p.tagsMatch(tag, model) {
 			result = append(result, model)
 		}
 	}
-	
+
 	return result, nil
 }

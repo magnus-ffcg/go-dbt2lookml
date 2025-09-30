@@ -70,23 +70,23 @@ type DbtExposure struct {
 
 // DbtCatalogNodeMetadata represents metadata about a dbt catalog node
 type DbtCatalogNodeMetadata struct {
-	Type     string  `json:"type" yaml:"type"`
-	Schema   string  `json:"schema" yaml:"schema"`
-	Name     string  `json:"name" yaml:"name"`
-	Comment  *string `json:"comment,omitempty" yaml:"comment,omitempty"`
-	Owner    *string `json:"owner,omitempty" yaml:"owner,omitempty"`
+	Type    string  `json:"type" yaml:"type"`
+	Schema  string  `json:"schema" yaml:"schema"`
+	Name    string  `json:"name" yaml:"name"`
+	Comment *string `json:"comment,omitempty" yaml:"comment,omitempty"`
+	Owner   *string `json:"owner,omitempty" yaml:"owner,omitempty"`
 }
 
 // DbtCatalogNodeColumn represents a column in a dbt catalog node
 type DbtCatalogNodeColumn struct {
-	Type         string                    `json:"type" yaml:"type"`
-	DataType     string                    `json:"data_type" yaml:"data_type"`
-	InnerTypes   []string                  `json:"inner_types" yaml:"inner_types"`
-	Comment      *string                   `json:"comment,omitempty" yaml:"comment,omitempty"`
-	Index        int                       `json:"index" yaml:"index"`
-	Name         string                    `json:"name" yaml:"name"`
-	OriginalName string                    `json:"original_name" yaml:"original_name"`
-	Parent       *DbtCatalogNodeColumn     `json:"parent,omitempty" yaml:"parent,omitempty"`
+	Type         string                `json:"type" yaml:"type"`
+	DataType     string                `json:"data_type" yaml:"data_type"`
+	InnerTypes   []string              `json:"inner_types" yaml:"inner_types"`
+	Comment      *string               `json:"comment,omitempty" yaml:"comment,omitempty"`
+	Index        int                   `json:"index" yaml:"index"`
+	Name         string                `json:"name" yaml:"name"`
+	OriginalName string                `json:"original_name" yaml:"original_name"`
+	Parent       *DbtCatalogNodeColumn `json:"parent,omitempty" yaml:"parent,omitempty"`
 }
 
 // ProcessColumnType processes the column type and extracts data type and inner types
@@ -100,30 +100,31 @@ func (c *DbtCatalogNodeColumn) ProcessColumnType() {
 		dataType = dataType[:idx]
 	}
 	c.DataType = dataType
-	
+
 	// Parse inner types using schema parser (simplified version)
 	// This would need to be implemented based on the Python schema parser
 	c.InnerTypes = parseInnerTypes(c.Type)
 }
+
 // parseInnerTypes is a simplified version of the schema parser
 func parseInnerTypes(columnType string) []string {
 	// This is a simplified implementation
 	// The full implementation would need to parse complex BigQuery types
 	var innerTypes []string
-	
+
 	// Basic ARRAY<TYPE> parsing
 	if strings.HasPrefix(columnType, "ARRAY<") && strings.HasSuffix(columnType, ">") {
 		inner := columnType[6 : len(columnType)-1]
 		innerTypes = append(innerTypes, inner)
 	}
-	
+
 	return innerTypes
 }
 
 // DbtCatalogNode represents a dbt catalog node
 type DbtCatalogNode struct {
-	Metadata DbtCatalogNodeMetadata           `json:"metadata" yaml:"metadata"`
-	Columns  map[string]DbtCatalogNodeColumn  `json:"columns" yaml:"columns"`
+	Metadata DbtCatalogNodeMetadata          `json:"metadata" yaml:"metadata"`
+	Columns  map[string]DbtCatalogNodeColumn `json:"columns" yaml:"columns"`
 }
 
 // NormalizeColumnNames converts all column names to lowercase for case-insensitive matching
@@ -135,7 +136,7 @@ func (n *DbtCatalogNode) NormalizeColumnNames() {
 		// Preserve the original name for proper LookML naming
 		column.OriginalName = name
 		column.Name = lowerName
-		
+
 		normalizedColumns[lowerName] = column
 	}
 	n.Columns = normalizedColumns
@@ -153,16 +154,16 @@ type DbtModelColumnMeta struct {
 
 // DbtModelColumn represents a column in a dbt model
 type DbtModelColumn struct {
-	Name           string                  `json:"name" yaml:"name"`
-	Description    *string                 `json:"description,omitempty" yaml:"description,omitempty"`
-	LookMLLongName *string                 `json:"lookml_long_name,omitempty" yaml:"lookml_long_name,omitempty"`
-	LookMLName     *string                 `json:"lookml_name,omitempty" yaml:"lookml_name,omitempty"`
-	OriginalName   *string                 `json:"original_name,omitempty" yaml:"original_name,omitempty"`
-	DataType       *string                 `json:"data_type,omitempty" yaml:"data_type,omitempty"`
-	InnerTypes     []string                `json:"inner_types" yaml:"inner_types"`
-	Meta           *DbtModelColumnMeta     `json:"meta,omitempty" yaml:"meta,omitempty"`
-	Nested         bool                    `json:"nested" yaml:"nested"`
-	IsPrimaryKey   bool                    `json:"is_primary_key" yaml:"is_primary_key"`
+	Name           string              `json:"name" yaml:"name"`
+	Description    *string             `json:"description,omitempty" yaml:"description,omitempty"`
+	LookMLLongName *string             `json:"lookml_long_name,omitempty" yaml:"lookml_long_name,omitempty"`
+	LookMLName     *string             `json:"lookml_name,omitempty" yaml:"lookml_name,omitempty"`
+	OriginalName   *string             `json:"original_name,omitempty" yaml:"original_name,omitempty"`
+	DataType       *string             `json:"data_type,omitempty" yaml:"data_type,omitempty"`
+	InnerTypes     []string            `json:"inner_types" yaml:"inner_types"`
+	Meta           *DbtModelColumnMeta `json:"meta,omitempty" yaml:"meta,omitempty"`
+	Nested         bool                `json:"nested" yaml:"nested"`
+	IsPrimaryKey   bool                `json:"is_primary_key" yaml:"is_primary_key"`
 }
 
 // ProcessColumn processes the column and sets derived fields
@@ -198,7 +199,7 @@ func (c *DbtModelColumn) generateLookMLNames() {
 	// Split by dots and convert each part
 	parts := strings.Split(originalName, ".")
 	var snakeParts []string
-	
+
 	for _, part := range parts {
 		if isLowerCaseWithoutUnderscore(part) {
 			snakeParts = append(snakeParts, part)
@@ -231,14 +232,14 @@ type DbtModelMeta struct {
 // DbtModel represents a dbt model
 type DbtModel struct {
 	DbtNode
-	ResourceType string                     `json:"resource_type" yaml:"resource_type"`
-	RelationName string                     `json:"relation_name" yaml:"relation_name"`
-	Schema       string                     `json:"schema" yaml:"schema"`
-	Description  string                     `json:"description" yaml:"description"`
-	Columns      map[string]DbtModelColumn  `json:"columns" yaml:"columns"`
-	Tags         []string                   `json:"tags" yaml:"tags"`
-	Meta         *DbtModelMeta              `json:"meta,omitempty" yaml:"meta,omitempty"`
-	Path         string                     `json:"path" yaml:"path"`
+	ResourceType string                    `json:"resource_type" yaml:"resource_type"`
+	RelationName string                    `json:"relation_name" yaml:"relation_name"`
+	Schema       string                    `json:"schema" yaml:"schema"`
+	Description  string                    `json:"description" yaml:"description"`
+	Columns      map[string]DbtModelColumn `json:"columns" yaml:"columns"`
+	Tags         []string                  `json:"tags" yaml:"tags"`
+	Meta         *DbtModelMeta             `json:"meta,omitempty" yaml:"meta,omitempty"`
+	Path         string                    `json:"path" yaml:"path"`
 }
 
 // NormalizeColumnNames converts all column names to lowercase for case-insensitive matching
@@ -265,7 +266,7 @@ func (m *DbtManifestMetadata) ValidateAdapter() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("adapter type %s is not supported. Supported adapters are: %v", 
+	return fmt.Errorf("adapter type %s is not supported. Supported adapters are: %v",
 		m.AdapterType, supportedAdapters)
 }
 

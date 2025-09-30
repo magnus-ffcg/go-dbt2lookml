@@ -157,28 +157,28 @@ func (c *Config) GetTargetPath(filename string) string {
 // Clone creates a copy of the configuration
 func (c *Config) Clone() *Config {
 	clone := *c
-	
+
 	// Deep copy slices
 	if len(c.IncludeModels) > 0 {
 		clone.IncludeModels = make([]string, len(c.IncludeModels))
 		copy(clone.IncludeModels, c.IncludeModels)
 	}
-	
+
 	if len(c.ExcludeModels) > 0 {
 		clone.ExcludeModels = make([]string, len(c.ExcludeModels))
 		copy(clone.ExcludeModels, c.ExcludeModels)
 	}
-	
+
 	if len(c.Timeframes) > 0 {
 		clone.Timeframes = make([]string, len(c.Timeframes))
 		copy(clone.Timeframes, c.Timeframes)
 	}
-	
+
 	return &clone
 }
 
 // String returns a string representation of the configuration (excluding sensitive data)
 func (c *Config) String() string {
-	return fmt.Sprintf("Config{ManifestPath: %s, CatalogPath: %s, OutputDir: %s, LogLevel: %s}", 
+	return fmt.Sprintf("Config{ManifestPath: %s, CatalogPath: %s, OutputDir: %s, LogLevel: %s}",
 		c.ManifestPath, c.CatalogPath, c.OutputDir, c.LogLevel)
 }

@@ -609,20 +609,20 @@ func TestFixtureComparison(t *testing.T) {
 			// Count views
 			genViews := countOccurrences(generatedStr, "\nview:")
 			expViews := countOccurrences(expectedStr, "\nview:")
-			
+
 			t.Logf("  Views: %d (expected %d)", genViews, expViews)
 			assert.Equal(t, expViews, genViews, "View count should match")
 
 			// Count dimensions per view for more precise comparison
 			genViewDims := countDimensionsPerView(generatedStr)
 			expViewDims := countDimensionsPerView(expectedStr)
-			
+
 			// Log main view dimensions (first view)
 			if len(genViewDims) > 0 && len(expViewDims) > 0 {
 				t.Logf("  Main view dimensions: %d (expected %d)", genViewDims[0].Dimensions, expViewDims[0].Dimensions)
 				t.Logf("  Main view dimension groups: %d (expected %d)", genViewDims[0].DimensionGroups, expViewDims[0].DimensionGroups)
 				t.Logf("  Main view measures: %d (expected %d)", genViewDims[0].Measures, expViewDims[0].Measures)
-				
+
 				// Assert main view counts match
 				assert.Equal(t, expViewDims[0].Dimensions, genViewDims[0].Dimensions, "Main view dimension count should match")
 				assert.Equal(t, expViewDims[0].DimensionGroups, genViewDims[0].DimensionGroups, "Main view dimension group count should match")
@@ -670,18 +670,18 @@ type ViewCounts struct {
 func countDimensionsPerView(content string) []ViewCounts {
 	var views []ViewCounts
 	var currentView *ViewCounts
-	
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Track view boundaries
 		if strings.HasPrefix(trimmed, "view:") {
 			// Save previous view if exists
 			if currentView != nil {
 				views = append(views, *currentView)
 			}
-			
+
 			// Start new view
 			parts := strings.Fields(trimmed)
 			if len(parts) >= 2 {
@@ -691,7 +691,7 @@ func countDimensionsPerView(content string) []ViewCounts {
 				}
 			}
 		}
-		
+
 		// Count elements in current view
 		if currentView != nil {
 			if strings.HasPrefix(trimmed, "dimension:") {
@@ -703,12 +703,12 @@ func countDimensionsPerView(content string) []ViewCounts {
 			}
 		}
 	}
-	
+
 	// Save last view
 	if currentView != nil {
 		views = append(views, *currentView)
 	}
-	
+
 	return views
 }
 

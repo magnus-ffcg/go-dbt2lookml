@@ -97,7 +97,7 @@ func TestLookMLDimension_Validate(t *testing.T) {
 
 func TestLookMLMeasure_Validate(t *testing.T) {
 	sql := "${TABLE}.amount"
-	
+
 	tests := []struct {
 		name        string
 		measure     LookMLMeasure

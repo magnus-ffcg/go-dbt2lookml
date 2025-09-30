@@ -9,8 +9,8 @@ import (
 
 // CatalogParser handles parsing of DBT catalog data
 type CatalogParser struct {
-	catalog         *models.DbtCatalog
-	rawCatalogData  map[string]interface{}
+	catalog        *models.DbtCatalog
+	rawCatalogData map[string]interface{}
 }
 
 // NewCatalogParser creates a new CatalogParser instance
@@ -32,7 +32,7 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 
 	// Normalize catalog column names and process column types
 	catalogNode.NormalizeColumnNames()
-	
+
 	// Process each catalog column to extract DataType from Type
 	for columnName, catalogColumn := range catalogNode.Columns {
 		catalogColumn.ProcessColumnType()
@@ -49,12 +49,12 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 		// Create a new model column from catalog data
 		dataTypeCopy := catalogColumn.DataType // Create a copy of the string
 		newColumn := models.DbtModelColumn{
-			Name:        catalogColumnName,  // Use normalized (lowercase) name for matching
+			Name:        catalogColumnName, // Use normalized (lowercase) name for matching
 			DataType:    &dataTypeCopy,
 			InnerTypes:  catalogColumn.InnerTypes,
 			Description: catalogColumn.Comment,
 		}
-		
+
 		// Set OriginalName for proper LookML naming (preserves PascalCase)
 		// CRITICAL: Must create a new string copy to avoid pointer sharing!
 		// Use catalogColumn.OriginalName (set by NormalizeColumnNames) which preserves PascalCase
@@ -62,13 +62,13 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 			originalNameCopy := catalogColumn.OriginalName
 			newColumn.OriginalName = &originalNameCopy
 		}
-		
+
 		newColumn.ProcessColumn()
 		processedColumns[catalogColumnName] = newColumn
 	}
 
 	processedModel.Columns = processedColumns
-	
+
 	return &processedModel, nil
 }
 

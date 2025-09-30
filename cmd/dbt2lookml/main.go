@@ -17,7 +17,7 @@ const banner = `
 
 func main() {
 	fmt.Print(banner)
-	
+
 	if err := cli.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

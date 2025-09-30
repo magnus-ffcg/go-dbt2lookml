@@ -54,7 +54,7 @@ func (g *MeasureGenerator) GenerateMeasure(model *models.DbtModel, measureMeta *
 // GenerateDefaultCountMeasure generates a default count measure for a model
 func (g *MeasureGenerator) GenerateDefaultCountMeasure(model *models.DbtModel) *models.LookMLMeasure {
 	measureName := "count"
-	
+
 	// Check if there's already a count measure defined in meta
 	if model.Meta != nil && model.Meta.Looker != nil {
 		for _, measureMeta := range model.Meta.Looker.Measures {
@@ -77,7 +77,7 @@ func (g *MeasureGenerator) getMeasureName(measureMeta *models.DbtMetaLookerMeasu
 	if measureMeta.Name != nil {
 		return *measureMeta.Name
 	}
-	
+
 	// Generate name from type
 	return string(measureMeta.Type)
 }
@@ -86,7 +86,7 @@ func (g *MeasureGenerator) getMeasureName(measureMeta *models.DbtMetaLookerMeasu
 func (g *MeasureGenerator) getMeasureSQL(model *models.DbtModel, measureMeta *models.DbtMetaLookerMeasure) *string {
 	// For most measure types, SQL is optional and Looker will generate it
 	// Only return SQL if it's explicitly needed or provided
-	
+
 	switch measureMeta.Type {
 	case enums.MeasureCount:
 		// Count measures don't need SQL
@@ -111,7 +111,7 @@ func (g *MeasureGenerator) getMeasureLabel(measureMeta *models.DbtMetaLookerMeas
 	if measureMeta.Label != nil {
 		return measureMeta.Label
 	}
-	
+
 	// Generate label from name or type
 	var label string
 	if measureMeta.Name != nil {
@@ -119,7 +119,7 @@ func (g *MeasureGenerator) getMeasureLabel(measureMeta *models.DbtMetaLookerMeas
 	} else {
 		label = string(measureMeta.Type)
 	}
-	
+
 	// Convert to title case
 	label = g.toTitleCase(label)
 	return &label
@@ -141,18 +141,18 @@ func (g *MeasureGenerator) toTitleCase(s string) string {
 	if len(s) == 0 {
 		return s
 	}
-	
+
 	// Convert first character to uppercase
 	result := string(s[0])
 	if result >= "a" && result <= "z" {
 		result = string(s[0] - 32)
 	}
-	
+
 	// Add the rest of the string
 	if len(s) > 1 {
 		result += s[1:]
 	}
-	
+
 	return result
 }
 
@@ -161,9 +161,9 @@ func (g *MeasureGenerator) GeneratePrimaryKeyMeasure(model *models.DbtModel, pkC
 	measureName := fmt.Sprintf("count_distinct_%s", *pkColumn.LookMLName)
 	label := fmt.Sprintf("Count Distinct %s", *pkColumn.LookMLName)
 	description := fmt.Sprintf("Count of distinct %s values", *pkColumn.LookMLName)
-	
+
 	sql := fmt.Sprintf("${TABLE}.%s", strings.ToLower(pkColumn.Name))
-	
+
 	return &models.LookMLMeasure{
 		Name:        measureName,
 		Type:        enums.MeasureCountDistinct,
@@ -178,22 +178,22 @@ func (g *MeasureGenerator) GenerateNumericMeasures(model *models.DbtModel, colum
 	if column.DataType == nil {
 		return nil
 	}
-	
+
 	// Check if column is numeric
 	dataType := *column.DataType
 	if !g.isNumericType(dataType) {
 		return nil
 	}
-	
+
 	var measures []*models.LookMLMeasure
 	columnName := *column.LookMLName
 	sql := fmt.Sprintf("${TABLE}.%s", strings.ToLower(column.Name))
-	
+
 	// Generate sum measure
 	sumName := fmt.Sprintf("sum_%s", columnName)
 	sumLabel := fmt.Sprintf("Sum %s", columnName)
 	sumDescription := fmt.Sprintf("Sum of %s values", columnName)
-	
+
 	sumMeasure := &models.LookMLMeasure{
 		Name:        sumName,
 		Type:        enums.MeasureSum,
@@ -202,12 +202,12 @@ func (g *MeasureGenerator) GenerateNumericMeasures(model *models.DbtModel, colum
 		Description: &sumDescription,
 	}
 	measures = append(measures, sumMeasure)
-	
+
 	// Generate average measure
 	avgName := fmt.Sprintf("avg_%s", columnName)
 	avgLabel := fmt.Sprintf("Average %s", columnName)
 	avgDescription := fmt.Sprintf("Average of %s values", columnName)
-	
+
 	avgMeasure := &models.LookMLMeasure{
 		Name:        avgName,
 		Type:        enums.MeasureAverage,
@@ -216,22 +216,22 @@ func (g *MeasureGenerator) GenerateNumericMeasures(model *models.DbtModel, colum
 		Description: &avgDescription,
 	}
 	measures = append(measures, avgMeasure)
-	
+
 	return measures
 }
 
 // isNumericType checks if a data type is numeric
 func (g *MeasureGenerator) isNumericType(dataType string) bool {
 	numericTypes := []string{
-		"INT64", "INTEGER", "FLOAT", "FLOAT64", 
+		"INT64", "INTEGER", "FLOAT", "FLOAT64",
 		"NUMERIC", "DECIMAL", "BIGNUMERIC",
 	}
-	
+
 	for _, numType := range numericTypes {
 		if dataType == numType {
 			return true
 		}
 	}
-	
+
 	return false
 }

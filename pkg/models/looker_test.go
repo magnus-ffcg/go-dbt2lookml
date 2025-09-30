@@ -98,7 +98,7 @@ func TestLookMLDimension_Structure(t *testing.T) {
 	description := "The name of the customer"
 	hidden := true
 	groupLabel := "Customer Info"
-	
+
 	dimension := LookMLDimension{
 		Name:        "customer_name",
 		Type:        "string",
@@ -121,7 +121,7 @@ func TestLookMLDimension_Structure(t *testing.T) {
 // TestLookMLDimensionGroup_Structure tests dimension group structure
 func TestLookMLDimensionGroup_Structure(t *testing.T) {
 	label := "Created"
-	
+
 	dimensionGroup := LookMLDimensionGroup{
 		Name:  "created_at",
 		Type:  "time",
@@ -146,7 +146,7 @@ func TestLookMLMeasure_Structure(t *testing.T) {
 	sql := "${TABLE}.amount"
 	label := "Total Amount"
 	precision := 2
-	
+
 	measure := LookMLMeasure{
 		Name:      "total_amount",
 		Type:      enums.MeasureSum,
@@ -166,7 +166,7 @@ func TestLookMLMeasure_Structure(t *testing.T) {
 // TestLookMLView_Structure tests view structure
 func TestLookMLView_Structure(t *testing.T) {
 	label := "Customer View"
-	
+
 	view := LookMLView{
 		Name:         "customers",
 		SQLTableName: "`project.dataset.customers`",
@@ -192,12 +192,12 @@ func TestLookMLView_Structure(t *testing.T) {
 func TestLookMLExplore_Structure(t *testing.T) {
 	label := "Customer Analysis"
 	hidden := true
-	
+
 	explore := LookMLExplore{
-		Name:        "customers",
-		ViewName:    "customers",
-		Label:       &label,
-		Hidden:      &hidden,
+		Name:     "customers",
+		ViewName: "customers",
+		Label:    &label,
+		Hidden:   &hidden,
 		Joins: []LookMLJoin{
 			{
 				Name: "orders",
@@ -219,7 +219,7 @@ func TestLookMLJoin_Structure(t *testing.T) {
 	viewLabel := "Order Information"
 	joinType := enums.JoinLeftOuter
 	relationship := enums.RelationshipManyToOne
-	
+
 	join := LookMLJoin{
 		Name:         "orders",
 		ViewLabel:    &viewLabel,
@@ -240,7 +240,7 @@ func TestLookMLJoin_Structure(t *testing.T) {
 func TestDbtMetaLooker_Structure(t *testing.T) {
 	viewLabel := "Test View"
 	dimLabel := "Test Dimension"
-	
+
 	meta := DbtMetaLooker{
 		View: &DbtMetaLookerBase{
 			Label: &viewLabel,
