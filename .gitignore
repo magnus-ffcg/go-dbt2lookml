@@ -46,3 +46,9 @@ temp/
 local.config
 
 real_samples/
+output/
+dbt2lookml
+
+.cursor
+.windsurf
+.work
