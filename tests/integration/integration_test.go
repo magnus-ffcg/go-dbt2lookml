@@ -28,6 +28,8 @@ type TestIntegration struct {
 // setupTestEnvironment sets up the test environment
 func (t *TestIntegration) setupTestEnvironment() error {
 	t.outputDir = "output/tests"
+	// Clean up any existing output directory first to avoid "file exists" errors
+	_ = os.RemoveAll(t.outputDir)
 	return os.MkdirAll(t.outputDir, 0755)
 }
 
