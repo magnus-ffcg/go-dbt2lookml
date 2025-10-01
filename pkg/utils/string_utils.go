@@ -87,12 +87,8 @@ func SnakeToCamel(s string) string {
 // QuoteColumnNameIfNeeded adds backticks around column names that need quoting
 func QuoteColumnNameIfNeeded(columnName string) string {
 	// Check if the column name contains spaces, special characters, or non-ASCII characters
-	needsQuoting := false
-
 	// Check for spaces
-	if strings.Contains(columnName, " ") {
-		needsQuoting = true
-	}
+	needsQuoting := strings.Contains(columnName, " ")
 
 	// Check for special characters (anything that's not alphanumeric or underscore)
 	for _, r := range columnName {

@@ -24,30 +24,81 @@ dbt2lookml --config config.yaml
 
 ## Development
 
+### Quick Start
+
+```bash
+# Install dependencies
+make deps
+
+# Run all CI checks locally (same as CI)
+make ci-check
+
+# Quick pre-commit checks
+make pre-commit
+```
+
 ### Running Tests
 
 ```bash
 # Run all tests
-go test ./...
+make test
 
-# Run unit tests only
-go test ./tests/unit/...
+# Run tests with race detector (like CI)
+make test-race
 
 # Run with coverage
-go test ./tests... -cover
+make test-coverage
 ```
 
 ### Building
 
 ```bash
 # Build binary
-go build -o bin/dbt2lookml ./cmd/dbt2lookml
+make build
 
+# Build for all platforms
+make build-all
+```
+
+### Code Quality
+
+```bash
 # Format code
-go fmt ./...
+make fmt
 
-# Lint
-golangci-lint run
+# Lint code (requires golangci-lint v2.4+)
+make lint
+
+# Run go vet
+go vet ./...
+```
+
+**Install golangci-lint v2.4+:**
+
+```bash
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1
+```
+
+### Pre-commit Hooks
+
+Set up Git hooks to run checks before each commit:
+
+```bash
+# Option 1: Use the .githooks directory
+git config core.hooksPath .githooks
+
+# Option 2: Install pre-commit (requires Python)
+pip install pre-commit
+pre-commit install
+```
+
+### Available Make Targets
+
+Run `make help` to see all available targets:
+
+```bash
+make help
+```
 ```
 
 ## Architecture

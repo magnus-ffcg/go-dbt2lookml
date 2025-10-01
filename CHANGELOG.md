@@ -97,12 +97,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CI/CD & Automation
 
 - **GitHub Actions workflows**
-  - Comprehensive CI pipeline (`.github/workflows/ci.yml`)
+  - Simplified CI pipeline (`.github/workflows/ci.yml`)
   - Tests on multiple Go versions (1.21, 1.22, 1.23)
   - Tests on multiple platforms (Linux, macOS, Windows)
-  - Linting with golangci-lint
-  - Security scanning (gosec + govulncheck)
+  - Single lint job with golangci-lint (includes fmt, vet, staticcheck, etc.)
+  - Security scanning with govulncheck
   - Code coverage reporting
+  - Reduced from 6 jobs to 4 jobs (test, lint, build, security)
 
 - **Automated release process**
   - GoReleaser configuration (`.goreleaser.yml`)
@@ -113,9 +114,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GitHub releases with download instructions
 
 - **Quality tooling**
-  - golangci-lint configuration (`.golangci.yml`)
-  - Comprehensive linter rules (20+ linters)
+  - golangci-lint v2.4+ configuration (`.golangci.yml`)
+  - Same linter version in CI and local development
+  - Comprehensive linter rules (9 linters enabled)
   - Format and style checking
+  - Consistent configuration across all environments
+
+- **Local development tools**
+  - Makefile with `ci-check` target (runs same checks as CI)
+  - Pre-commit hooks (`.githooks/pre-commit`)
+  - Pre-commit configuration (`.pre-commit-config.yaml`)
+  - Quick feedback before pushing to CI
+  - Single `.golangci.yml` works everywhere
 
 ### Security
 

@@ -37,11 +37,11 @@ fmt: ## Format Go code
 	$(GOCMD) fmt ./...
 
 # Lint code
-lint: ## Lint Go code (requires golangci-lint)
+lint: ## Lint Go code (requires golangci-lint v2.4+)
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run; \
 	else \
-		echo "golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+		echo "golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1"; \
 	fi
 
 # Run tests
@@ -52,6 +52,10 @@ test: ## Run tests
 test-coverage: ## Run tests with coverage
 	$(GOTEST) -v -coverprofile=coverage.out ./...
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+
+# Run tests with race detector (like CI)
+test-race: ## Run tests with race detector
+	$(GOTEST) -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
 # Build binary
 build: ## Build binary
@@ -129,3 +133,33 @@ mod-check: ## Check Go modules
 update-deps: ## Update dependencies
 	$(GOGET) -u ./...
 	$(GOMOD) tidy
+
+# CI checks - run all checks that CI runs
+ci-check: ## Run all CI checks locally
+	@echo "Running CI checks..."
+	@echo "\n==> Checking formatting..."
+	@if [ -n "$$(gofmt -l .)" ]; then \
+		echo "The following files are not formatted:"; \
+		gofmt -l .; \
+		exit 1; \
+	else \
+		echo "✓ All files are properly formatted"; \
+	fi
+	@echo "\n==> Running go vet..."
+	@$(GOCMD) vet ./... && echo "✓ go vet passed"
+	@echo "\n==> Running golangci-lint..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --timeout=5m --config .golangci.yml && echo "✓ golangci-lint passed"; \
+	else \
+		echo "⚠ golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1"; \
+		exit 1; \
+	fi
+	@echo "\n==> Running tests with race detector..."
+	@$(GOTEST) -race -coverprofile=coverage.out -covermode=atomic ./... && echo "✓ All tests passed"
+	@echo "\n==> Building binary..."
+	@$(GOBUILD) -o /tmp/$(BINARY_NAME) $(MAIN_PATH) && echo "✓ Build successful"
+	@echo "\n✅ All CI checks passed!"
+
+# Quick pre-commit check (faster than full CI)
+pre-commit: fmt lint test ## Run quick pre-commit checks
+	@echo "✅ Pre-commit checks passed!"

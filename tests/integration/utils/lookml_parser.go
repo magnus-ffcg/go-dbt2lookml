@@ -84,7 +84,7 @@ func (p *LookMLParser) ParseFile(filePath string) (*ParsedLookMLFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Read all lines
 	scanner := bufio.NewScanner(file)
@@ -411,7 +411,7 @@ func (p *LookMLParser) parseDimensionGroup() (*ParsedDimensionGroup, error) {
 		} else if strings.HasPrefix(line, "timeframes:") {
 			dimensionGroup.Timeframes = p.extractArrayValue(line, "timeframes:")
 		} else if strings.HasPrefix(line, "convert_tz:") {
-			convertTZ := strings.Contains(line, "no") == false
+			convertTZ := !strings.Contains(line, "no")
 			dimensionGroup.ConvertTZ = &convertTZ
 		} else if strings.HasPrefix(line, "datatype:") {
 			value := p.extractStringValue(line, "datatype:")

@@ -68,9 +68,10 @@ func (g *DimensionGenerator) GenerateDimension(model *models.DbtModel, column *m
 	}
 
 	// Set additional properties based on type
-	if dimension.Type == "yesno" {
+	switch dimension.Type {
+	case "yesno":
 		// Boolean dimensions don't need additional properties
-	} else if dimension.Type == "number" {
+	case "number":
 		// Number dimensions might have value format
 		dimension.ValueFormatName = g.getDimensionValueFormat(column)
 	}

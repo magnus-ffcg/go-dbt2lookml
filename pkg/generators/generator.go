@@ -105,13 +105,13 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 
 		// Generate main view file (includes explore and nested views inline)
 		if err := g.generateViewFile(model); err != nil {
-			errorMsg := fmt.Sprintf("failed to generate view for model %s: %v", model.Name, err)
 			if g.config.ContinueOnError {
+				errorMsg := fmt.Sprintf("failed to generate view for model %s: %v", model.Name, err)
 				log.Printf("Warning: %s", errorMsg)
 				errors = append(errors, errorMsg)
 				continue
 			} else {
-				return filesGenerated, fmt.Errorf(errorMsg)
+				return filesGenerated, fmt.Errorf("failed to generate view for model %s: %w", model.Name, err)
 			}
 		}
 		filesGenerated++

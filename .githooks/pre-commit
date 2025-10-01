@@ -1,0 +1,50 @@
+#!/bin/sh
+# Git pre-commit hook for go-dbt2lookml
+# To install: ln -s ../../.githooks/pre-commit .git/hooks/pre-commit
+# Or run: git config core.hooksPath .githooks
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if files are formatted
+echo "\n==> Checking Go formatting..."
+UNFORMATTED=$(gofmt -l .)
+if [ -n "$UNFORMATTED" ]; then
+    echo "❌ The following files are not formatted:"
+    echo "$UNFORMATTED"
+    echo "\nRun: make fmt"
+    exit 1
+fi
+echo "✓ All files are formatted"
+
+# Run go vet
+echo "\n==> Running go vet..."
+if ! go vet ./...; then
+    echo "❌ go vet failed"
+    exit 1
+fi
+echo "✓ go vet passed"
+
+# Run golangci-lint (if installed)
+if command -v golangci-lint >/dev/null 2>&1; then
+    echo "\n==> Running golangci-lint..."
+    if ! golangci-lint run --timeout=5m; then
+        echo "❌ golangci-lint failed"
+        exit 1
+    fi
+    echo "✓ golangci-lint passed"
+else
+    echo "\n⚠️  golangci-lint not installed (skipping)"
+    echo "   Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1"
+fi
+
+# Run tests
+echo "\n==> Running tests..."
+if ! go test ./... -short; then
+    echo "❌ Tests failed"
+    exit 1
+fi
+echo "✓ Tests passed"
+
+echo "\n✅ All pre-commit checks passed!"

@@ -34,12 +34,12 @@ func (t *TestIntegration) setupTestEnvironment() error {
 // cleanupTestEnvironment cleans up test artifacts
 func (t *TestIntegration) cleanupTestEnvironment() {
 	if t.outputDir != "" {
-		os.RemoveAll(t.outputDir)
+		_ = os.RemoveAll(t.outputDir) // Best effort cleanup, ignore errors
 		// Also clean up parent directory if it's empty
 		parentDir := filepath.Dir(t.outputDir)
 		if parentDir != "." && parentDir != ".." {
 			if files, err := os.ReadDir(parentDir); err == nil && len(files) == 0 {
-				os.Remove(parentDir)
+				_ = os.Remove(parentDir) // Best effort cleanup, ignore errors
 			}
 		}
 	}

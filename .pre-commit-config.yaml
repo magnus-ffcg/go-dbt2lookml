@@ -1,0 +1,49 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# See https://pre-commit.com for more information
+
+repos:
+  # Go formatting
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        name: Format Go code (gofmt)
+      - id: go-vet
+        name: Run go vet
+      - id: go-build
+        name: Build Go code
+      - id: go-mod-tidy
+        name: Tidy go.mod
+
+  # Golangci-lint v2.4+
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.4.1
+    hooks:
+      - id: golangci-lint
+        name: Run golangci-lint
+        args: ['--timeout=5m']
+
+  # Run tests
+  - repo: local
+    hooks:
+      - id: go-test
+        name: Run Go tests
+        entry: go test ./...
+        language: system
+        pass_filenames: false
+        types: [go]
+
+  # YAML linting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: check-merge-conflict
+        name: Check for merge conflicts
