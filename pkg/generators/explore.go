@@ -69,8 +69,15 @@ func (g *ExploreGenerator) getExploreLabel(model *models.DbtModel) *string {
 
 	// Generate from model name
 	label := strings.ReplaceAll(model.Name, "_", " ")
-	label = strings.Title(label)
-	return &label
+	// Capitalize first letter of each word
+	words := strings.Fields(label)
+	for i, word := range words {
+		if len(word) > 0 {
+			words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
+		}
+	}
+	result := strings.Join(words, " ")
+	return &result
 }
 
 // getExploreDescription gets the explore description
@@ -196,10 +203,10 @@ func (g *ExploreGenerator) getNestedViewName(model *models.DbtModel, arrayColumn
 func (g *ExploreGenerator) getNestedViewLabel(model *models.DbtModel, arrayColumnName string) string {
 	// Use the same naming logic as explore names for consistency
 	baseName := g.getExploreName(model)
-	modelLabel := strings.Title(strings.ReplaceAll(baseName, "_", " "))
+	modelLabel := utils.ToTitleCase(strings.ReplaceAll(baseName, "_", " "))
 
 	// Convert array column name to title case
-	arrayLabel := strings.Title(strings.ReplaceAll(strings.ReplaceAll(arrayColumnName, ".", " "), "_", " "))
+	arrayLabel := utils.ToTitleCase(strings.ReplaceAll(strings.ReplaceAll(arrayColumnName, ".", " "), "_", " "))
 
 	return fmt.Sprintf("%s: %s", modelLabel, arrayLabel)
 }

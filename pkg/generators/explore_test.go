@@ -464,7 +464,7 @@ func TestExploreGenerator_ErrorHandling(t *testing.T) {
 			if tt.expectError && tt.model == nil {
 				// Expect panic for nil model
 				assert.Panics(t, func() {
-					generator.GenerateExplore(tt.model)
+					_, _ = generator.GenerateExplore(tt.model)
 				})
 			} else {
 				explore, err := generator.GenerateExplore(tt.model)

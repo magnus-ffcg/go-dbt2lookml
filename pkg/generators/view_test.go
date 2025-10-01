@@ -504,7 +504,7 @@ func TestViewGenerator_ErrorHandling(t *testing.T) {
 			if tt.expectError && tt.model == nil {
 				// Expect panic for nil model
 				assert.Panics(t, func() {
-					generator.GenerateView(tt.model)
+					_, _ = generator.GenerateView(tt.model)
 				})
 			} else {
 				view, err := generator.GenerateView(tt.model)

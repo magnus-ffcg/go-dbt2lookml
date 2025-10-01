@@ -76,7 +76,8 @@ func SnakeToCamel(s string) string {
 
 	for _, part := range parts {
 		if len(part) > 0 {
-			result.WriteString(strings.Title(part))
+			// Capitalize first letter, rest stays as-is
+			result.WriteString(strings.ToUpper(string(part[0])) + part[1:])
 		}
 	}
 
@@ -222,8 +223,14 @@ func ToTitleCase(s string) string {
 		return s
 	}
 
-	// Convert to title case (first letter uppercase, rest lowercase)
-	return strings.Title(strings.ToLower(s))
+	// Convert to title case: capitalize first letter of each word
+	words := strings.Fields(strings.ToLower(s))
+	for i, word := range words {
+		if len(word) > 0 {
+			words[i] = strings.ToUpper(string(word[0])) + word[1:]
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 // ToLookMLName converts a column name to LookML naming convention.

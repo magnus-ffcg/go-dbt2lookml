@@ -10,6 +10,14 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
+// Date/time data type constants
+const (
+	dataTypeDate      = "DATE"
+	dataTypeDateTime  = "DATETIME"
+	dataTypeTimestamp = "TIMESTAMP"
+	dimGroupTypeTime  = "time"
+)
+
 // Compile-time check to ensure DimensionGenerator implements DimensionGeneratorInterface
 var _ DimensionGeneratorInterface = (*DimensionGenerator)(nil)
 
@@ -188,19 +196,19 @@ func (g *DimensionGenerator) getDimensionType(column *models.DbtModelColumn) str
 // getDimensionGroupType gets the dimension group type based on the column data type
 func (g *DimensionGenerator) getDimensionGroupType(column *models.DbtModelColumn) string {
 	if column.DataType == nil {
-		return "time"
+		return dimGroupTypeTime
 	}
 
 	dataType := strings.ToUpper(*column.DataType)
 	switch dataType {
-	case "DATE":
-		return "time"
-	case "DATETIME":
-		return "time"
-	case "TIMESTAMP":
-		return "time"
+	case dataTypeDate:
+		return dimGroupTypeTime
+	case dataTypeDateTime:
+		return dimGroupTypeTime
+	case dataTypeTimestamp:
+		return dimGroupTypeTime
 	default:
-		return "time"
+		return dimGroupTypeTime
 	}
 }
 
@@ -337,7 +345,7 @@ func (g *DimensionGenerator) getDimensionGroupTimeframes(column *models.DbtModel
 	if column.DataType != nil {
 		dataType := strings.ToUpper(*column.DataType)
 		switch dataType {
-		case "DATE":
+		case dataTypeDate:
 			return []enums.LookerTimeFrame{
 				enums.TimeFrameRaw,
 				enums.TimeFrameDate,
@@ -346,7 +354,7 @@ func (g *DimensionGenerator) getDimensionGroupTimeframes(column *models.DbtModel
 				enums.TimeFrameQuarter,
 				enums.TimeFrameYear,
 			}
-		case "DATETIME", "TIMESTAMP":
+		case dataTypeDateTime, dataTypeTimestamp:
 			return []enums.LookerTimeFrame{
 				enums.TimeFrameRaw,
 				enums.TimeFrameTime,
@@ -393,5 +401,5 @@ func (g *DimensionGenerator) shouldBeDimensionGroup(column *models.DbtModelColum
 	}
 
 	dataType := strings.ToUpper(*column.DataType)
-	return dataType == "DATE" || dataType == "DATETIME" || dataType == "TIMESTAMP"
+	return dataType == dataTypeDate || dataType == dataTypeDateTime || dataType == dataTypeTimestamp
 }

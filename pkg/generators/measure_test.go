@@ -448,7 +448,7 @@ func TestMeasureGenerator_ErrorHandling(t *testing.T) {
 			if tt.expectError && tt.measureMeta == nil {
 				// Test will panic with nil measureMeta, so we expect that
 				assert.Panics(t, func() {
-					generator.GenerateMeasure(tt.model, tt.measureMeta)
+					_, _ = generator.GenerateMeasure(tt.model, tt.measureMeta)
 				})
 			} else {
 				result, err := generator.GenerateMeasure(tt.model, tt.measureMeta)

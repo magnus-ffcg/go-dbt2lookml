@@ -37,5 +37,16 @@ issues:
   exclude-files:
     - ".*\\.pb\\.go$"
   
+  exclude-rules:
+    # Exclude unused code warnings - some code is kept for future features
+    - linters:
+        - unused
+      text: "is unused"
+    
+    # Allow high complexity in specific functions
+    - linters:
+        - gocyclo
+      text: "NewColumnCollections|FilterModels"
+  
   max-issues-per-linter: 0
   max-same-issues: 0

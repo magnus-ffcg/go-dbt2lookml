@@ -322,7 +322,7 @@ func TestDimensionGenerator_ErrorHandling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.expectPanic {
 				assert.Panics(t, func() {
-					generator.GenerateDimension(tt.model, tt.column)
+					_, _ = generator.GenerateDimension(tt.model, tt.column)
 				})
 			} else {
 				dimension, err := generator.GenerateDimension(tt.model, tt.column)
