@@ -48,6 +48,7 @@ local.config
 real_samples/
 output/
 dbt2lookml
+tests/integration/output/
 
 .cursor
 .windsurf

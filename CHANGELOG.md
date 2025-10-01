@@ -97,13 +97,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CI/CD & Automation
 
 - **GitHub Actions workflows**
-  - Simplified CI pipeline (`.github/workflows/ci.yml`)
-  - Tests on multiple Go versions (1.21, 1.22, 1.23)
-  - Tests on multiple platforms (Linux, macOS, Windows)
-  - Single lint job with golangci-lint (includes fmt, vet, staticcheck, etc.)
+  - Streamlined CI pipeline (`.github/workflows/ci.yml`)
+  - Tests on Ubuntu with Go 1.23 (single reliable runner)
+  - Single lint job with golangci-lint v2.5.0 (includes fmt, vet, staticcheck, etc.)
   - Security scanning with govulncheck
-  - Code coverage reporting
-  - Reduced from 6 jobs to 4 jobs (test, lint, build, security)
+  - Code coverage reporting with Codecov
+  - 4 focused jobs: test, lint, build, security
 
 - **Automated release process**
   - GoReleaser configuration (`.goreleaser.yml`)
