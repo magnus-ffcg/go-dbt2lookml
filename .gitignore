@@ -54,6 +54,4 @@ tests/integration/output/
 .windsurf
 
 # Ignore .work directory but allow docs
-.work/*
-!.work/docs/
-!.work/docs/**
+.work/
