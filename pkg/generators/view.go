@@ -2,7 +2,6 @@ package generators
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
@@ -201,70 +200,23 @@ func (g *ViewGenerator) generateDimensionsWithCollections(model *models.DbtModel
 	return dimensions, nil
 }
 
-// resolveConflicts renames dimensions that conflict with dimension groups by adding '_conflict' suffix
+// resolveConflicts uses the domain service to resolve dimension/dimension-group naming conflicts
 func (g *ViewGenerator) resolveConflicts(dimensions []models.LookMLDimension, dimensionGroups []models.LookMLDimensionGroup, modelName string) []models.LookMLDimension {
-	// Build set of all names that dimension groups would generate
-	dimensionGroupNames := make(map[string]bool)
-
-	for _, group := range dimensionGroups {
-		// Add the base dimension group name
-		dimensionGroupNames[group.Name] = true
-
-		// Add all timeframe variations that would be generated
-		// e.g., for "item_creation" with timeframes [date, time, week, month], add:
-		// item_creation_date, item_creation_time, item_creation_week, item_creation_month
-		if group.Timeframes != nil {
-			for _, timeframe := range group.Timeframes {
-				generatedName := fmt.Sprintf("%s_%s", group.Name, timeframe)
-				dimensionGroupNames[generatedName] = true
-			}
-		}
-	}
-
-	// Check if any dimensions actually conflict
-	hasConflicts := false
-	for _, dimension := range dimensions {
-		if dimensionGroupNames[dimension.Name] {
-			hasConflicts = true
-			break
-		}
-	}
-
-	// Only apply conflict resolution if there are actual conflicts
-	if !hasConflicts {
-		return dimensions
-	}
-
-	// Process dimensions and rename conflicts
-	processedDimensions := make([]models.LookMLDimension, 0, len(dimensions))
-	for _, dimension := range dimensions {
-		if dimensionGroupNames[dimension.Name] {
-			// Conflict detected - rename by adding '_conflict' suffix
-			originalName := dimension.Name
-			dimension.Name = fmt.Sprintf("%s_conflict", originalName)
-
-			// Make it hidden with a comment
-			hidden := true
-			dimension.Hidden = &hidden
-
-			log.Printf("Renamed conflicting dimension '%s' to '%s' in model '%s'", originalName, dimension.Name, modelName)
-		}
-		processedDimensions = append(processedDimensions, dimension)
-	}
-
-	return processedDimensions
+	resolver := models.NewDimensionConflictResolver()
+	return resolver.Resolve(dimensions, dimensionGroups, modelName)
 }
 
 // generateNestedViewReferenceDimensions generates hidden dimensions in main view that reference nested views
 func (g *ViewGenerator) generateNestedViewReferenceDimensions(model *models.DbtModel, columnCollections *models.ColumnCollections) []models.LookMLDimension {
 	var dimensions []models.LookMLDimension
 
+	// Apply business rules for nested array processing
+	arrayRules := models.NewNestedArrayRules()
+
 	// For each nested view, create a corresponding reference dimension in main view
 	for arrayName, nestedCols := range columnCollections.NestedViewColumns {
-		// Skip deeply nested arrays (more than 2 dots = level 4+)
-		// Python implementation only generates hidden reference dimensions for arrays up to level 3
-		dotCount := strings.Count(arrayName, ".")
-		if dotCount > 2 {
+		// Skip arrays that exceed the maximum nesting depth
+		if !arrayRules.ShouldProcessArray(arrayName) {
 			continue
 		}
 

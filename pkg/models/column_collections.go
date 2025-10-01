@@ -11,13 +11,6 @@ type ColumnCollections struct {
 	ExcludedColumns   map[string]DbtModelColumn            // Columns excluded from all views
 }
 
-// HierarchyInfo contains information about column hierarchy
-type HierarchyInfo struct {
-	Children []string
-	IsArray  bool
-	Column   *DbtModelColumn
-}
-
 // FromModel creates column collections from a dbt model with optimized processing
 func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollections {
 	if arrayModels == nil {
@@ -28,7 +21,8 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 	allColumns := model.Columns
 
 	// Build hierarchy map for proper nested array detection
-	hierarchy := buildHierarchyMap(allColumns)
+	hierarchyHelper := NewColumnHierarchy(allColumns)
+	hierarchy := hierarchyHelper.All()
 
 	// Convert array_models to string names and find all array columns
 	arrayModelNames := make(map[string]bool)
@@ -114,64 +108,6 @@ func NewColumnCollections(model *DbtModel, arrayModels []string) *ColumnCollecti
 		NestedViewColumns: nestedViewColumns,
 		ExcludedColumns:   excludedColumns,
 	}
-}
-
-// buildHierarchyMap builds a map of parent -> children relationships based on dot notation
-func buildHierarchyMap(columns map[string]DbtModelColumn) map[string]*HierarchyInfo {
-	hierarchy := make(map[string]*HierarchyInfo)
-
-	// First pass: create all hierarchy entries
-	for _, col := range columns {
-		parts := strings.Split(col.Name, ".")
-		for i := range parts {
-			parentPath := strings.Join(parts[:i+1], ".")
-			if hierarchy[parentPath] == nil {
-				hierarchy[parentPath] = &HierarchyInfo{
-					Children: []string{},
-					IsArray:  false,
-					Column:   nil,
-				}
-			}
-		}
-	}
-
-	// Second pass: set correct column references and array flags
-	for _, col := range columns {
-		if info, exists := hierarchy[col.Name]; exists {
-			info.Column = &col
-			// Only mark as array if the data type starts with ARRAY
-			if col.DataType != nil {
-				dataTypeUpper := strings.ToUpper(*col.DataType)
-				info.IsArray = strings.HasPrefix(dataTypeUpper, "ARRAY")
-			} else {
-				info.IsArray = false
-			}
-		}
-	}
-
-	// Third pass: build child relationships
-	for _, col := range columns {
-		parts := strings.Split(col.Name, ".")
-		for i := 0; i < len(parts)-1; i++ {
-			parentPath := strings.Join(parts[:i+1], ".")
-			childPath := strings.Join(parts[:i+2], ".")
-			if parentInfo, exists := hierarchy[parentPath]; exists {
-				// Check if child already exists to avoid duplicates
-				found := false
-				for _, existing := range parentInfo.Children {
-					if existing == childPath {
-						found = true
-						break
-					}
-				}
-				if !found {
-					parentInfo.Children = append(parentInfo.Children, childPath)
-				}
-			}
-		}
-	}
-
-	return hierarchy
 }
 
 // shouldExcludeFromAllViews checks if a column should be excluded from all views
