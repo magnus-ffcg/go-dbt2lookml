@@ -41,7 +41,7 @@ lint: ## Lint Go code (requires golangci-lint v2.4+)
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run; \
 	else \
-		echo "golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1"; \
+		echo "golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.5.0"; \
 	fi
 
 # Run tests
@@ -151,7 +151,7 @@ ci-check: ## Run all CI checks locally
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run --timeout=5m --config .golangci.yml && echo "✓ golangci-lint passed"; \
 	else \
-		echo "⚠ golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1"; \
+		echo "⚠ golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.5.0"; \
 		exit 1; \
 	fi
 	@echo "\n==> Running tests with race detector..."

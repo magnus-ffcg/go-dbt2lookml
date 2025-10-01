@@ -76,7 +76,7 @@ go vet ./...
 **Install golangci-lint v2.4+:**
 
 ```bash
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.4.1
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.5.0
 ```
 
 ### Pre-commit Hooks
