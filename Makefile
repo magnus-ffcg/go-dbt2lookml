@@ -163,3 +163,34 @@ ci-check: ## Run all CI checks locally
 # Quick pre-commit check (faster than full CI)
 pre-commit: fmt lint test ## Run quick pre-commit checks
 	@echo "✅ Pre-commit checks passed!"
+
+# Versioning targets
+CURRENT_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+VERSION_PARTS := $(subst ., ,$(subst v,,$(CURRENT_VERSION)))
+MAJOR := $(word 1,$(VERSION_PARTS))
+MINOR := $(word 2,$(VERSION_PARTS))
+PATCH := $(word 3,$(VERSION_PARTS))
+
+version-current: ## Show current version
+	@echo "Current version: $(CURRENT_VERSION)"
+
+version-patch: ## Bump patch version (e.g., v1.2.3 -> v1.2.4)
+	@$(eval NEW_VERSION := v$(MAJOR).$(MINOR).$(shell echo $$(($(PATCH)+1))))
+	@echo "Bumping version from $(CURRENT_VERSION) to $(NEW_VERSION)"
+	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
+	@git push origin $(NEW_VERSION)
+	@echo "✅ Tagged and pushed $(NEW_VERSION)"
+
+version-minor: ## Bump minor version (e.g., v1.2.3 -> v1.3.0)
+	@$(eval NEW_VERSION := v$(MAJOR).$(shell echo $$(($(MINOR)+1))).0)
+	@echo "Bumping version from $(CURRENT_VERSION) to $(NEW_VERSION)"
+	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
+	@git push origin $(NEW_VERSION)
+	@echo "✅ Tagged and pushed $(NEW_VERSION)"
+
+version-major: ## Bump major version (e.g., v1.2.3 -> v2.0.0)
+	@$(eval NEW_VERSION := v$(shell echo $$(($(MAJOR)+1))).0.0)
+	@echo "Bumping version from $(CURRENT_VERSION) to $(NEW_VERSION)"
+	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
+	@git push origin $(NEW_VERSION)
+	@echo "✅ Tagged and pushed $(NEW_VERSION)"

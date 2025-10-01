@@ -207,19 +207,7 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	var fullContent strings.Builder
 
-	// 1. Generate explore section first
-	explore, err := g.exploreGenerator.GenerateExplore(model)
-	if err != nil {
-		return fmt.Errorf("failed to generate explore: %w", err)
-	}
-
-	exploreContent, err := g.exploreToLookML(explore)
-	if err != nil {
-		return fmt.Errorf("failed to convert explore to LookML: %w", err)
-	}
-	fullContent.WriteString(exploreContent)
-
-	// 2. Generate main view
+	// 1. Generate main view first
 	view, err := g.viewGenerator.GenerateView(model)
 	if err != nil {
 		return fmt.Errorf("failed to generate view: %w", err)
@@ -231,11 +219,23 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	}
 	fullContent.WriteString(viewContent)
 
-	// 3. Generate nested views and append them to the same file
+	// 2. Generate nested views and append them to the same file
 	nestedViewsCount, err := g.generateNestedViewsInline(model, &fullContent)
 	if err != nil {
 		return fmt.Errorf("failed to generate nested views: %w", err)
 	}
+
+	// 3. Generate explore section at the bottom
+	explore, err := g.exploreGenerator.GenerateExplore(model)
+	if err != nil {
+		return fmt.Errorf("failed to generate explore: %w", err)
+	}
+
+	exploreContent, err := g.exploreToLookML(explore)
+	if err != nil {
+		return fmt.Errorf("failed to convert explore to LookML: %w", err)
+	}
+	fullContent.WriteString(exploreContent)
 
 	log.Printf("Generated %d nested views inline for model %s", nestedViewsCount, model.Name)
 
@@ -564,21 +564,21 @@ func (g *LookMLGenerator) viewToLookML(view *models.LookMLView) (string, error) 
 func (g *LookMLGenerator) lookmlJoinToLookML(join *models.LookMLJoin) string {
 	var builder strings.Builder
 
-	builder.WriteString(fmt.Sprintf("    join: %s {\n", join.Name))
+	builder.WriteString(fmt.Sprintf("  join: %s {\n", join.Name))
 
 	if join.ViewLabel != nil {
-		builder.WriteString(fmt.Sprintf("      view_label: \"%s\"\n", *join.ViewLabel))
+		builder.WriteString(fmt.Sprintf("    view_label: \"%s\"\n", *join.ViewLabel))
 	}
 
 	if join.SQL != nil {
-		builder.WriteString(fmt.Sprintf("      sql: %s ;;\n", *join.SQL))
+		builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", *join.SQL))
 	}
 
 	if join.Relationship != nil {
-		builder.WriteString(fmt.Sprintf("      relationship: %s\n", string(*join.Relationship)))
+		builder.WriteString(fmt.Sprintf("    relationship: %s\n", string(*join.Relationship)))
 	}
 
-	builder.WriteString("    }\n")
+	builder.WriteString("  }\n")
 
 	return builder.String()
 }
@@ -587,7 +587,7 @@ func (g *LookMLGenerator) lookmlJoinToLookML(join *models.LookMLJoin) string {
 func (g *LookMLGenerator) exploreToLookML(explore *models.LookMLExplore) (string, error) {
 	var builder strings.Builder
 
-	builder.WriteString("# Un-hide and use this explore, or copy the joins into another explore, to get all the fully nested relationships from this view\n")
+	builder.WriteString("\n# Un-hide and use this explore, or copy the joins into another explore, to get all the fully nested relationships from this view\n")
 	builder.WriteString(fmt.Sprintf("explore: %s {\n", explore.Name))
 	builder.WriteString("  hidden: yes\n")
 
@@ -630,7 +630,7 @@ func (g *LookMLGenerator) dimensionToLookML(dimension *models.LookMLDimension) s
 		builder.WriteString("    hidden: yes\n")
 	}
 
-	builder.WriteString("  }\n")
+	builder.WriteString("  }\n\n")
 
 	return builder.String()
 }
@@ -706,14 +706,16 @@ func (g *LookMLGenerator) generateSingleNestedView(model *models.DbtModel, array
 			}
 		}
 
-		dimension, err := g.generateNestedViewDimension(model, arrayName, &column)
+		dimension, err := g.generateNestedViewDimension(model, viewName, arrayName, &column)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate nested dimension for %s: %w", column.Name, err)
+			return nil, fmt.Errorf("failed to generate dimension for %s: %w", column.Name, err)
 		}
 		if dimension != nil {
 			dimensions = append(dimensions, *dimension)
 		}
 	}
+
+	// Assign dimensions to the nested view
 	nestedView.Dimensions = dimensions
 
 	return nestedView, nil
@@ -731,12 +733,12 @@ func (g *LookMLGenerator) isSingleValueArray(column *models.DbtModelColumn) bool
 }
 
 // generateNestedViewDimension generates a dimension for a nested view with correct SQL references
-func (g *LookMLGenerator) generateNestedViewDimension(model *models.DbtModel, arrayName string, column *models.DbtModelColumn) (*models.LookMLDimension, error) {
+func (g *LookMLGenerator) generateNestedViewDimension(model *models.DbtModel, viewName string, arrayName string, column *models.DbtModelColumn) (*models.LookMLDimension, error) {
 	// For nested views, create simpler dimensions without extra grouping attributes
 	dimension := &models.LookMLDimension{
 		Name: g.generateNestedViewDimensionName(model, arrayName, column),
 		Type: g.dimensionGenerator.getDimensionType(column),
-		SQL:  g.generateNestedViewSQL(arrayName, column),
+		SQL:  g.generateNestedViewSQL(viewName, arrayName, column),
 	}
 
 	// Add description if available
@@ -807,9 +809,8 @@ func (g *LookMLGenerator) generateNestedViewDimensionName(model *models.DbtModel
 }
 
 // generateNestedViewSQL generates the SQL reference for a nested view dimension
-func (g *LookMLGenerator) generateNestedViewSQL(arrayName string, column *models.DbtModelColumn) string {
+func (g *LookMLGenerator) generateNestedViewSQL(viewName string, arrayName string, column *models.DbtModelColumn) string {
 	// For nested view dimensions, we need to reference the nested field structure
-	// Example: for column "supplierinformation.gtin.gtinid", we want "${TABLE}.GTIN.GTINId"
 
 	columnName := column.Name
 
@@ -817,19 +818,26 @@ func (g *LookMLGenerator) generateNestedViewSQL(arrayName string, column *models
 	// e.g., "supplierinformation.gtin.gtinid" -> "gtin.gtinid"
 	if strings.HasPrefix(columnName, arrayName+".") {
 		nestedPath := strings.TrimPrefix(columnName, arrayName+".")
-
-		// Convert to lowercase for consistent SQL references (matches expected output)
-		// e.g., "gtin.gtinid" -> "gtin.gtinid"
+		// Convert to lowercase for consistent SQL references
 		nestedPath = strings.ToLower(nestedPath)
+
+		// Use explicit view_name.column if configured, otherwise ${TABLE}.column
+		if g.config.NestedViewExplicitReference {
+			return fmt.Sprintf("%s.%s", viewName, nestedPath)
+		}
 		return fmt.Sprintf("${TABLE}.%s", nestedPath)
 	}
 
-	// For the array field itself (hidden dimension), reference the table column
+	// For the array field itself (hidden dimension), use just the view name
+	// e.g., "f_store_sales_week_v1__sales" not "${TABLE}.sales"
 	if columnName == arrayName {
-		return fmt.Sprintf("${TABLE}.%s", strings.ToLower(arrayName))
+		return viewName
 	}
 
-	// Fallback: use the column name in lowercase
+	// Fallback: regular nested fields
+	if g.config.NestedViewExplicitReference {
+		return fmt.Sprintf("%s.%s", viewName, strings.ToLower(columnName))
+	}
 	return fmt.Sprintf("${TABLE}.%s", strings.ToLower(columnName))
 }
 

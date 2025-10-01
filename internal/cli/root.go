@@ -23,24 +23,25 @@ import (
 // cliFlags holds all CLI flag values in a single struct
 // This avoids package-level variables and makes testing easier
 type cliFlags struct {
-	cfgFile            string
-	manifestPath       string
-	catalogPath        string
-	targetDir          string
-	outputDir          string
-	tag                string
-	logLevel           string
-	selectModel        string
-	exposuresOnly      bool
-	exposuresTag       string
-	useTableName       bool
-	continueOnError    bool
-	includeModels      []string
-	excludeModels      []string
-	timeframes         []string
-	removeSchemaString string
-	reportPath         string
-	flatten            bool
+	cfgFile                     string
+	manifestPath                string
+	catalogPath                 string
+	targetDir                   string
+	outputDir                   string
+	tag                         string
+	logLevel                    string
+	selectModel                 string
+	exposuresOnly               bool
+	exposuresTag                string
+	useTableName                bool
+	continueOnError             bool
+	includeModels               []string
+	excludeModels               []string
+	timeframes                  []string
+	removeSchemaString          string
+	reportPath                  string
+	flatten                     bool
+	nestedViewExplicitReference bool
 }
 
 // flags is the single instance holding CLI flag values
@@ -55,17 +56,20 @@ var rootCmd = &cobra.Command{
 It parses dbt manifest and catalog files to create comprehensive LookML views
 with dimensions, measures, and explores for use in Looker. Supports complex
 nested structures (STRUCT, ARRAY) and provides flexible error handling.`,
-	Example: `  # Generate LookML from dbt artifacts
+	Example: `  # Generate LookML from dbt target directory (simplest)
+  dbt2lookml --target-dir target --output-dir lookml/views
+
+  # Or specify manifest and catalog paths explicitly
   dbt2lookml --manifest-path target/manifest.json --catalog-path target/catalog.json --output-dir lookml/views
 
   # Use a configuration file
   dbt2lookml --config config.yaml
 
   # Filter by tag and continue on errors
-  dbt2lookml --tag looker --continue-on-error --manifest-path target/manifest.json --catalog-path target/catalog.json
+  dbt2lookml --target-dir target --tag looker --continue-on-error
 
   # Generate only models referenced in exposures
-  dbt2lookml --exposures-only --manifest-path target/manifest.json --catalog-path target/catalog.json`,
+  dbt2lookml --target-dir target --exposures-only`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runDbt2Lookml,
@@ -82,10 +86,10 @@ func init() {
 	// Configuration file flag
 	rootCmd.PersistentFlags().StringVar(&flags.cfgFile, "config", "", "Path to configuration file (default: ./config.yaml)")
 
-	// Core flags (Required)
-	rootCmd.Flags().StringVar(&flags.manifestPath, "manifest-path", "", "Path to dbt manifest.json file (required)")
-	rootCmd.Flags().StringVar(&flags.catalogPath, "catalog-path", "", "Path to dbt catalog.json file (required)")
-	rootCmd.Flags().StringVar(&flags.targetDir, "target-dir", ".", "dbt target directory (default: .)")
+	// Core flags
+	rootCmd.Flags().StringVar(&flags.manifestPath, "manifest-path", "", "Path to dbt manifest.json file")
+	rootCmd.Flags().StringVar(&flags.catalogPath, "catalog-path", "", "Path to dbt catalog.json file")
+	rootCmd.Flags().StringVar(&flags.targetDir, "target-dir", ".", "dbt target directory (looks for manifest.json and catalog.json here)")
 	rootCmd.Flags().StringVar(&flags.outputDir, "output-dir", ".", "Output directory for generated LookML files (default: .)")
 
 	// Model Filtering
@@ -103,6 +107,7 @@ func init() {
 	rootCmd.Flags().StringSliceVar(&flags.timeframes, "timeframes", []string{}, "Custom timeframes for date dimensions (e.g., 'day,week,month')")
 	rootCmd.Flags().StringVar(&flags.removeSchemaString, "remove-schema-string", "", "String to remove from schema names in output paths")
 	rootCmd.Flags().BoolVar(&flags.flatten, "flatten", false, "Generate all LookML files in output directory without subdirectories")
+	rootCmd.Flags().BoolVar(&flags.nestedViewExplicitReference, "nested-view-explicit-reference", false, "Use explicit view_name.column references in nested views instead of ${TABLE}")
 
 	// Error Handling & Logging
 	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Logging level: DEBUG, INFO, WARN, ERROR")
@@ -125,6 +130,7 @@ func init() {
 	_ = viper.BindPFlag("timeframes", rootCmd.Flags().Lookup("timeframes"))
 	_ = viper.BindPFlag("remove_schema_string", rootCmd.Flags().Lookup("remove-schema-string"))
 	_ = viper.BindPFlag("flatten", rootCmd.Flags().Lookup("flatten"))
+	_ = viper.BindPFlag("nested_view_explicit_reference", rootCmd.Flags().Lookup("nested-view-explicit-reference"))
 	_ = viper.BindPFlag("log_level", rootCmd.Flags().Lookup("log-level"))
 	_ = viper.BindPFlag("continue_on_error", rootCmd.Flags().Lookup("continue-on-error"))
 	_ = viper.BindPFlag("report", rootCmd.Flags().Lookup("report"))

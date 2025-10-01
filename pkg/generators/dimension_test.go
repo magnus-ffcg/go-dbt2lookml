@@ -539,7 +539,7 @@ func TestDimensionGenerator_DimensionGroups(t *testing.T) {
 				DataType: stringPtr("DATE"),
 			},
 			expectedGroupName: "order", // _date suffix removed
-			expectedType:      "time",
+			expectedType:      "date",  // DATE uses type: date
 			hasTimeframes:     true,
 		},
 		{

@@ -54,27 +54,31 @@ const (
 type LookerBigQueryDataType string
 
 const (
-	DataTypeNumber    LookerBigQueryDataType = "number"
-	DataTypeYesNo     LookerBigQueryDataType = "yesno"
-	DataTypeString    LookerBigQueryDataType = "string"
-	DataTypeTimestamp LookerBigQueryDataType = "timestamp"
-	DataTypeDateTime  LookerBigQueryDataType = "datetime"
-	DataTypeDate      LookerBigQueryDataType = "date"
+	DataTypeNumber LookerBigQueryDataType = "number"
+	DataTypeYesNo  LookerBigQueryDataType = "yesno"
+	DataTypeString LookerBigQueryDataType = "string"
+	// Note: DATE, DATETIME, and TIMESTAMP are not valid Looker dimension types
+	// They should be dimension_groups with type "time" or "date", not regular dimensions
+	// These constants are kept for backward compatibility but should never be returned by GetLookerType
+	DataTypeTimestamp LookerBigQueryDataType = "string" // Invalid as dimension type, changed to string
+	DataTypeDateTime  LookerBigQueryDataType = "string" // Invalid as dimension type, changed to string
+	DataTypeDate      LookerBigQueryDataType = "string" // Invalid as dimension type, changed to string
 )
 
 // GetLookerType returns the appropriate Looker type for a BigQuery data type
+// Note: DATE, DATETIME, and TIMESTAMP types return "string" because they should
+// be handled as dimension_groups with type "time", not regular dimensions.
+// If they appear as regular dimensions, they should be strings.
 func GetLookerType(bqType string) LookerBigQueryDataType {
 	switch bqType {
 	case "INT64", "INTEGER", "FLOAT", "FLOAT64", "NUMERIC", "DECIMAL", "BIGNUMERIC":
 		return DataTypeNumber
 	case "BOOLEAN", "BOOL":
 		return DataTypeYesNo
-	case "TIMESTAMP":
-		return DataTypeTimestamp
-	case "DATETIME":
-		return DataTypeDateTime
-	case "DATE":
-		return DataTypeDate
+	case "TIMESTAMP", "DATETIME", "DATE":
+		// Date/time types should be dimension_groups, not dimensions
+		// If they end up as regular dimensions, use string type
+		return DataTypeString
 	default:
 		return DataTypeString
 	}

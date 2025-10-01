@@ -30,10 +30,10 @@ func TestGetLookerType(t *testing.T) {
 		{"STRING", "STRING", DataTypeString},
 		{"BYTES", "BYTES", DataTypeString},
 
-		// Date/Time types (specific types for dimension groups)
-		{"DATE", "DATE", DataTypeDate},
-		{"DATETIME", "DATETIME", DataTypeDateTime},
-		{"TIMESTAMP", "TIMESTAMP", DataTypeTimestamp},
+		// Date/Time types (should be dimension_groups, so map to string for regular dimensions)
+		{"DATE", "DATE", DataTypeString},
+		{"DATETIME", "DATETIME", DataTypeString},
+		{"TIMESTAMP", "TIMESTAMP", DataTypeString},
 		{"TIME", "TIME", DataTypeString},
 
 		// Complex types

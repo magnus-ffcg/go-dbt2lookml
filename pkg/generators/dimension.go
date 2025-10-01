@@ -203,11 +203,9 @@ func (g *DimensionGenerator) getDimensionGroupType(column *models.DbtModelColumn
 	dataType := strings.ToUpper(*column.DataType)
 	switch dataType {
 	case dataTypeDate:
-		return dimGroupTypeTime
-	case dataTypeDateTime:
-		return dimGroupTypeTime
-	case dataTypeTimestamp:
-		return dimGroupTypeTime
+		return "date" // DATE fields use type: date
+	case dataTypeDateTime, dataTypeTimestamp:
+		return dimGroupTypeTime // DATETIME and TIMESTAMP use type: time
 	default:
 		return dimGroupTypeTime
 	}

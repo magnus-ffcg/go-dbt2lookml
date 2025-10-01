@@ -27,10 +27,11 @@ type Config struct {
 	ExposuresTag  string `mapstructure:"exposures_tag"`
 
 	// Generation options
-	UseTableName       bool     `mapstructure:"use_table_name"`
-	Timeframes         []string `mapstructure:"timeframes"`
-	RemoveSchemaString string   `mapstructure:"remove_schema_string"`
-	Flatten            bool     `mapstructure:"flatten"`
+	UseTableName                bool     `mapstructure:"use_table_name"`
+	Timeframes                  []string `mapstructure:"timeframes"`
+	RemoveSchemaString          string   `mapstructure:"remove_schema_string"`
+	Flatten                     bool     `mapstructure:"flatten"`
+	NestedViewExplicitReference bool     `mapstructure:"nested_view_explicit_reference"`
 
 	// Utility options
 	LogLevel        string `mapstructure:"log_level"`
@@ -46,6 +47,14 @@ func LoadConfig() (*Config, error) {
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// Auto-populate manifest and catalog paths from target_dir if not explicitly set
+	if cfg.ManifestPath == "" && cfg.TargetDir != "" {
+		cfg.ManifestPath = cfg.GetTargetPath("manifest.json")
+	}
+	if cfg.CatalogPath == "" && cfg.TargetDir != "" {
+		cfg.CatalogPath = cfg.GetTargetPath("catalog.json")
 	}
 
 	// Validate configuration
@@ -106,10 +115,10 @@ func setDefaults() {
 func (c *Config) Validate() error {
 	// Validate required fields
 	if c.ManifestPath == "" {
-		return fmt.Errorf("manifest_path is required")
+		return fmt.Errorf("manifest_path is required (specify --manifest-path or --target-dir)")
 	}
 	if c.CatalogPath == "" {
-		return fmt.Errorf("catalog_path is required")
+		return fmt.Errorf("catalog_path is required (specify --catalog-path or --target-dir)")
 	}
 
 	// Validate log level
