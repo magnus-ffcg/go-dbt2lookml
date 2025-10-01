@@ -1,6 +1,6 @@
-# golangci-lint configuration for golangci-lint v2.4+
+# golangci-lint configuration for golangci-lint v2.5+
 # https://golangci-lint.run/usage/configuration/
-# Both CI and local development use v2.4+ for consistency
+# Both CI and local development use v2.5.0 for consistency
 version: 2
 
 run:

@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GitHub releases with download instructions
 
 - **Quality tooling**
-  - golangci-lint v2.4+ configuration (`.golangci.yml`)
+  - golangci-lint v2.5.0 configuration (`.golangci.yml`)
   - Same linter version in CI and local development
   - Comprehensive linter rules (9 linters enabled)
   - Format and style checking

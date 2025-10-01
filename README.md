@@ -66,17 +66,17 @@ make build-all
 # Format code
 make fmt
 
-# Lint code (requires golangci-lint v2.4+)
+# Lint code (requires golangci-lint v2.5+)
 make lint
 
 # Run go vet
 go vet ./...
 ```
 
-**Install golangci-lint v2.4+:**
+**Install golangci-lint v2.5+:**
 
 ```bash
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.5.0
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 ```
 
 ### Pre-commit Hooks
