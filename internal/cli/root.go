@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -205,7 +206,22 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 	generateStart := time.Now()
 
 	generator := generators.NewLookMLGenerator(cfg)
-	filesGenerated, err := generator.GenerateAll(models)
+
+	// Use new error strategy system for better error handling
+	var errorStrategy generators.ErrorStrategy
+	if cfg.ContinueOnError {
+		errorStrategy = generators.ContinueOnError
+	} else {
+		errorStrategy = generators.FailFast
+	}
+
+	opts := generators.GenerationOptions{
+		ErrorStrategy: errorStrategy,
+		MaxErrors:     0, // No limit
+		Verbose:       true, // Enable verbose logging
+	}
+
+	result, err := generator.GenerateAllWithOptions(context.Background(), models, opts)
 	if err != nil {
 		if cfg.ContinueOnError {
 			log.Printf("Warning: Generation completed with errors: %v", err)
@@ -214,19 +230,29 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Report any model-specific errors
+	if result.HasErrors() {
+		log.Printf("Warning: %d models failed to generate:", len(result.Errors))
+		for _, modelErr := range result.Errors {
+			log.Printf("  - %s", modelErr.String())
+		}
+	}
+
 	generateTime := time.Since(generateStart)
 	totalTime := time.Since(startTime)
 
 	// Report results
-	log.Printf("Generation completed successfully!")
-	log.Printf("Files generated: %d", filesGenerated)
+	if !result.HasErrors() || cfg.ContinueOnError {
+		log.Printf("Generation completed!")
+	}
+	log.Printf("Files generated: %d/%d", result.FilesGenerated, result.ModelsProcessed)
 	log.Printf("Parsing time: %v", parseTime)
 	log.Printf("Generation time: %v", generateTime)
 	log.Printf("Total time: %v", totalTime)
 
 	// Generate report if requested
 	if cfg.ReportPath != "" {
-		if err := generateReport(cfg.ReportPath, models, filesGenerated, parseTime, generateTime, totalTime); err != nil {
+		if err := generateReport(cfg.ReportPath, models, result.FilesGenerated, parseTime, generateTime, totalTime); err != nil {
 			log.Printf("Warning: Failed to generate report: %v", err)
 		} else {
 			log.Printf("Report generated: %s", cfg.ReportPath)

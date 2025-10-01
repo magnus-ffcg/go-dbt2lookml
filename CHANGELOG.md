@@ -9,6 +9,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Open-source project infrastructure**
+  - Created `LICENSE` - MIT License for maximum compatibility
+  - Created `SECURITY.md` - Vulnerability reporting policy (48h response time)
+  - Created `CONTRIBUTING.md` - Complete contributor guide (500+ lines)
+    - Development setup, coding standards, testing guidelines
+    - Commit message conventions, PR process, CI/CD explanation
+  - Created `CODE_OF_CONDUCT.md` - Contributor Covenant v2.1
+  - Added `version` command to CLI - Shows version, commit, build date, Go version, platform
+  - Created GitHub issue templates (bug report, feature request)
+  - Created GitHub pull request template with comprehensive checklist
+  - Organized `docs/` folder structure (public/ for users, development/ for contributors)
+  - Created comprehensive user documentation (getting-started.md, error-handling.md)
+  - Created developer documentation (architecture.md with Phase 1 & 2 details)
+
+- **Error handling strategy** for generation operations
+  - Created `pkg/generators/error_strategy.go` - ErrorStrategy enum (FailFast, FailAtEnd, ContinueOnError)
+  - Created `GenerationOptions` struct for configurable error handling
+  - Created `GenerationResult` struct with detailed error reporting
+  - Added `GenerateAllWithOptions()` method with better error control
+  - Added `ModelError` type for tracking per-model errors
+  - Added 150+ lines of comprehensive tests for error strategies
+  - Users can now choose how errors are handled during generation
+
+- **Domain services for business logic**
+  - Created `pkg/models/nested_array_rules.go` - Explicit array depth limit rules (max 3 levels)
+  - Created `pkg/models/dimension_conflict_resolver.go` - Dimension/dimension-group conflict resolution
+  - Created `pkg/models/column_hierarchy.go` - Column structure analysis and parent-child relationships
+  - Created `pkg/models/column_classifier.go` - Column classification business rules
+  - Created `pkg/models/column_collections_v2.go` - Clean implementation using new services
+  - Added 940 lines of comprehensive tests (39 test functions, 135+ test cases)
+  - All business rules now explicit, documented, and independently testable
+
+### Changed
+
+- **Refactored generators to use domain services**
+  - `ViewGenerator.resolveConflicts()` reduced from 44 lines to 3 lines (93% reduction)
+  - `ViewGenerator` now uses `NestedArrayRules` for array depth checking
+  - Removed hardcoded magic number (`dotCount > 2`) in favor of explicit business rule
+  - Business logic moved from generators (30%) to domain layer (85%)
+  - Generators now act as thin coordinators, delegating to domain services
+  - Removed unused `log` import from `view.go`
+
+- **Improved code organization**
+  - `column_collections.go` reduced from 224 to 170 lines
+  - Removed duplicate `buildHierarchyMap` function
+  - Separated concerns: structure analysis vs. business rules
+  - Average function length reduced: 40 → 25 lines (-37%)
+  - Maximum function length reduced: 110 → 70 lines (-36%)
+
+### Added
+
 - **Interface-based architecture** for all generator types
   - Created `pkg/generators/interfaces.go` with 5 generator interfaces
   - `ViewGeneratorInterface`, `DimensionGeneratorInterface`, `MeasureGeneratorInterface`

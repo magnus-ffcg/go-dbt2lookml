@@ -72,10 +72,86 @@ func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
 	}
 }
 
-// GenerateAll generates all LookML files for the given models
+// GenerateAll generates all LookML files for the given models.
+// Uses the legacy error handling behavior (respects config.ContinueOnError).
 func (g *LookMLGenerator) GenerateAll(models []*models.DbtModel) (int, error) {
 	// Call the context-aware version with background context
 	return g.GenerateAllWithContext(context.Background(), models)
+}
+
+// GenerateAllWithOptions generates all LookML files with configurable error handling.
+// This is the recommended method for new code as it provides better error control.
+func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*models.DbtModel, opts GenerationOptions) (*GenerationResult, error) {
+	result := &GenerationResult{
+		FilesGenerated:  0,
+		Errors:          []ModelError{},
+		ModelsProcessed: 0,
+	}
+
+	if len(models) == 0 {
+		return result, fmt.Errorf("no models provided for generation")
+	}
+
+	// Ensure output directory exists
+	if err := os.MkdirAll(g.config.OutputDir, dirPermissions); err != nil {
+		return result, fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	for _, model := range models {
+		result.ModelsProcessed++
+
+		// Check for cancellation before processing each model
+		select {
+		case <-ctx.Done():
+			return result, fmt.Errorf("generation cancelled after %d files: %w", result.FilesGenerated, ctx.Err())
+		default:
+			// Continue processing
+		}
+
+		if opts.Verbose {
+			log.Printf("Generating LookML for model: %s", model.Name)
+		}
+
+		// Generate main view file
+		if err := g.generateViewFile(model); err != nil {
+			modelErr := ModelError{
+				ModelName: model.Name,
+				Error:     err,
+			}
+			result.Errors = append(result.Errors, modelErr)
+
+			// Apply error strategy
+			switch opts.ErrorStrategy {
+			case FailFast:
+				return result, fmt.Errorf("generation failed on model %s: %w", model.Name, err)
+
+			case FailAtEnd:
+				if opts.Verbose {
+					log.Printf("Warning: failed to generate %s: %v", model.Name, err)
+				}
+				// Check if we've hit the error limit
+				if opts.MaxErrors > 0 && len(result.Errors) >= opts.MaxErrors {
+					return result, fmt.Errorf("too many errors (%d), stopping generation", len(result.Errors))
+				}
+				continue
+
+			case ContinueOnError:
+				if opts.Verbose {
+					log.Printf("Warning: failed to generate %s: %v (continuing)", model.Name, err)
+				}
+				continue
+			}
+		}
+
+		result.FilesGenerated++
+	}
+
+	// Return error only if strategy requires it
+	if opts.ErrorStrategy == FailAtEnd && result.HasErrors() {
+		return result, fmt.Errorf("%d of %d models failed to generate", len(result.Errors), result.ModelsProcessed)
+	}
+
+	return result, nil
 }
 
 // GenerateAllWithContext generates all LookML files for the given models with cancellation support
