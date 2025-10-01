@@ -1,7 +1,7 @@
 # golangci-lint configuration for golangci-lint v2.5+
 # https://golangci-lint.run/usage/configuration/
 # Both CI and local development use v2.5.0 for consistency
-version: 2
+version: "2"
 
 run:
   timeout: 5m
@@ -41,11 +41,5 @@ formatters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  
-  exclusions:
-    # Exclude fixture files and generated code
-    paths:
-      - tests/fixtures/
-      - ".*\\.pb\\.go$"
 
 
