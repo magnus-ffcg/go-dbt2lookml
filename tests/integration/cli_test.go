@@ -26,8 +26,6 @@ func TestConfigStructure(t *testing.T) {
 		ExposuresOnly:      true,
 		ExposuresTag:       "dashboard",
 		UseTableName:       true,
-		GenerateLocale:     false,
-		IncludeISOFields:   true,
 		Timeframes:         []string{"day", "week", "month"},
 		RemoveSchemaString: "schema_prefix",
 		LogLevel:           "INFO",
@@ -47,8 +45,6 @@ func TestConfigStructure(t *testing.T) {
 	assert.True(t, cfg.ExposuresOnly)
 	assert.Equal(t, "dashboard", cfg.ExposuresTag)
 	assert.True(t, cfg.UseTableName)
-	assert.False(t, cfg.GenerateLocale)
-	assert.True(t, cfg.IncludeISOFields)
 	assert.Equal(t, []string{"day", "week", "month"}, cfg.Timeframes)
 	assert.Equal(t, "schema_prefix", cfg.RemoveSchemaString)
 	assert.Equal(t, "INFO", cfg.LogLevel)
@@ -109,7 +105,6 @@ exposures_tag: "dashboard"
 	assert.Equal(t, "config_tag", cfg.Tag)
 	assert.Equal(t, []string{"model1", "model2"}, cfg.IncludeModels)
 	assert.Equal(t, []string{"exclude1"}, cfg.ExcludeModels)
-	assert.False(t, cfg.IncludeISOFields)
 	assert.Equal(t, []string{"date", "week"}, cfg.Timeframes)
 	assert.Equal(t, "schema_prefix", cfg.RemoveSchemaString)
 	assert.False(t, cfg.ExposuresOnly)
@@ -210,8 +205,6 @@ catalog_path: "catalog.json"
 	assert.Equal(t, "INFO", cfg.LogLevel, "Should have default log level")
 	assert.False(t, cfg.ExposuresOnly, "ExposuresOnly should default to false")
 	assert.False(t, cfg.UseTableName, "UseTableName should default to false")
-	assert.False(t, cfg.GenerateLocale, "GenerateLocale should default to false")
-	assert.False(t, cfg.IncludeISOFields, "IncludeISOFields should default to false")
 	assert.False(t, cfg.ContinueOnError, "ContinueOnError should default to false")
 	assert.Empty(t, cfg.IncludeModels, "IncludeModels should be empty by default")
 	assert.Empty(t, cfg.ExcludeModels, "ExcludeModels should be empty by default")

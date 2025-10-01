@@ -38,8 +38,6 @@ type cliFlags struct {
 	includeModels      []string
 	excludeModels      []string
 	timeframes         []string
-	includeISOFields   bool
-	generateLocale     bool
 	removeSchemaString string
 	reportPath         string
 	flatten            bool
@@ -52,10 +50,22 @@ var flags = &cliFlags{}
 var rootCmd = &cobra.Command{
 	Use:   "dbt2lookml",
 	Short: "Convert dbt models to LookML views",
-	Long: `dbt2lookml is a tool that generates LookML views from BigQuery via dbt models.
-	
+	Long: `dbt2lookml generates LookML views from BigQuery via dbt models.
+
 It parses dbt manifest and catalog files to create comprehensive LookML views
-with dimensions, measures, and explores for use in Looker.`,
+with dimensions, measures, and explores for use in Looker. Supports complex
+nested structures (STRUCT, ARRAY) and provides flexible error handling.`,
+	Example: `  # Generate LookML from dbt artifacts
+  dbt2lookml --manifest-path target/manifest.json --catalog-path target/catalog.json --output-dir lookml/views
+
+  # Use a configuration file
+  dbt2lookml --config config.yaml
+
+  # Filter by tag and continue on errors
+  dbt2lookml --tag looker --continue-on-error --manifest-path target/manifest.json --catalog-path target/catalog.json
+
+  # Generate only models referenced in exposures
+  dbt2lookml --exposures-only --manifest-path target/manifest.json --catalog-path target/catalog.json`,
 	RunE: runDbt2Lookml,
 }
 
@@ -68,36 +78,34 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Configuration file flag
-	rootCmd.PersistentFlags().StringVar(&flags.cfgFile, "config", "", "config file (default is ./config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&flags.cfgFile, "config", "", "Path to configuration file (default: ./config.yaml)")
 
-	// Core flags
-	rootCmd.Flags().StringVar(&flags.manifestPath, "manifest-path", "", "Path to dbt manifest.json file")
-	rootCmd.Flags().StringVar(&flags.catalogPath, "catalog-path", "", "Path to dbt catalog.json file")
-	rootCmd.Flags().StringVar(&flags.targetDir, "target-dir", ".", "Target directory for output files")
-	rootCmd.Flags().StringVar(&flags.outputDir, "output-dir", ".", "Output directory for LookML files")
+	// Core flags (Required)
+	rootCmd.Flags().StringVar(&flags.manifestPath, "manifest-path", "", "Path to dbt manifest.json file (required)")
+	rootCmd.Flags().StringVar(&flags.catalogPath, "catalog-path", "", "Path to dbt catalog.json file (required)")
+	rootCmd.Flags().StringVar(&flags.targetDir, "target-dir", ".", "dbt target directory (default: .)")
+	rootCmd.Flags().StringVar(&flags.outputDir, "output-dir", ".", "Output directory for generated LookML files (default: .)")
 
-	// Filtering flags
-	rootCmd.Flags().StringVar(&flags.tag, "tag", "", "Filter models by tag")
-	rootCmd.Flags().StringVar(&flags.selectModel, "select", "", "Select a specific model")
-	rootCmd.Flags().StringSliceVar(&flags.includeModels, "include-models", []string{}, "Include specific models")
-	rootCmd.Flags().StringSliceVar(&flags.excludeModels, "exclude-models", []string{}, "Exclude specific models")
+	// Model Filtering
+	rootCmd.Flags().StringVar(&flags.tag, "tag", "", "Filter models by dbt tag (e.g., 'looker')")
+	rootCmd.Flags().StringVar(&flags.selectModel, "select", "", "Select a specific model by name")
+	rootCmd.Flags().StringSliceVar(&flags.includeModels, "include-models", []string{}, "Comma-separated list of models to include")
+	rootCmd.Flags().StringSliceVar(&flags.excludeModels, "exclude-models", []string{}, "Comma-separated list of models to exclude")
 
-	// Exposure flags
-	rootCmd.Flags().BoolVar(&flags.exposuresOnly, "exposures-only", false, "Generate only models referenced in exposures")
-	rootCmd.Flags().StringVar(&flags.exposuresTag, "exposures-tag", "", "Filter exposures by tag")
+	// Exposure Filtering
+	rootCmd.Flags().BoolVar(&flags.exposuresOnly, "exposures-only", false, "Generate only models referenced in dbt exposures")
+	rootCmd.Flags().StringVar(&flags.exposuresTag, "exposures-tag", "", "Filter exposures by tag before processing")
 
-	// Generation options
-	rootCmd.Flags().BoolVar(&flags.useTableName, "use-table-name", false, "Use table name instead of model name")
-	rootCmd.Flags().BoolVar(&flags.generateLocale, "generate-locale", false, "Generate locale-specific formatting")
-	rootCmd.Flags().BoolVar(&flags.includeISOFields, "include-iso-fields", false, "Include ISO date/time fields")
-	rootCmd.Flags().StringSliceVar(&flags.timeframes, "timeframes", []string{}, "Custom timeframes for date dimensions")
-	rootCmd.Flags().StringVar(&flags.removeSchemaString, "remove-schema-string", "", "String to remove from schema names")
-	rootCmd.Flags().BoolVar(&flags.flatten, "flatten", false, "Generate all files in output directory without folder structure")
+	// Generation Options
+	rootCmd.Flags().BoolVar(&flags.useTableName, "use-table-name", false, "Use BigQuery table name instead of dbt model name for view names")
+	rootCmd.Flags().StringSliceVar(&flags.timeframes, "timeframes", []string{}, "Custom timeframes for date dimensions (e.g., 'day,week,month')")
+	rootCmd.Flags().StringVar(&flags.removeSchemaString, "remove-schema-string", "", "String to remove from schema names in output paths")
+	rootCmd.Flags().BoolVar(&flags.flatten, "flatten", false, "Generate all LookML files in output directory without subdirectories")
 
-	// Utility flags
-	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
-	rootCmd.Flags().BoolVar(&flags.continueOnError, "continue-on-error", false, "Continue processing on errors")
-	rootCmd.Flags().StringVar(&flags.reportPath, "report", "", "Generate processing report to file")
+	// Error Handling & Logging
+	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Logging level: DEBUG, INFO, WARN, ERROR")
+	rootCmd.Flags().BoolVar(&flags.continueOnError, "continue-on-error", false, "Continue processing remaining models if errors occur")
+	rootCmd.Flags().StringVar(&flags.reportPath, "report", "", "Path to write processing report (JSON format)")
 
 	// Bind flags to viper
 	// These errors are safe to ignore as they only fail if the flag doesn't exist (which is a programmer error caught in testing)
@@ -112,8 +120,6 @@ func init() {
 	_ = viper.BindPFlag("exposures_only", rootCmd.Flags().Lookup("exposures-only"))
 	_ = viper.BindPFlag("exposures_tag", rootCmd.Flags().Lookup("exposures-tag"))
 	_ = viper.BindPFlag("use_table_name", rootCmd.Flags().Lookup("use-table-name"))
-	_ = viper.BindPFlag("generate_locale", rootCmd.Flags().Lookup("generate-locale"))
-	_ = viper.BindPFlag("include_iso_fields", rootCmd.Flags().Lookup("include-iso-fields"))
 	_ = viper.BindPFlag("timeframes", rootCmd.Flags().Lookup("timeframes"))
 	_ = viper.BindPFlag("remove_schema_string", rootCmd.Flags().Lookup("remove-schema-string"))
 	_ = viper.BindPFlag("flatten", rootCmd.Flags().Lookup("flatten"))
@@ -152,12 +158,9 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Validate required paths
-	if cfg.ManifestPath == "" {
-		return fmt.Errorf("manifest-path is required")
-	}
-	if cfg.CatalogPath == "" {
-		return fmt.Errorf("catalog-path is required")
+	// Validate file paths exist before proceeding
+	if err := cfg.ValidateFilePaths(); err != nil {
+		return fmt.Errorf("configuration error: %w", err)
 	}
 
 	// Set up logging

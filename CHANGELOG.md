@@ -7,7 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Unimplemented features**
+  - Removed `--generate-locale` flag (was not implemented)
+  - Removed `--include-iso-fields` flag (was not implemented)
+  - Cleaned up CLI, config, and documentation
+  - All remaining flags are fully functional
+
 ### Added
+
+- **Performance optimization**
+  - Pre-allocated map capacity in NormalizeColumnNames methods
+  - Reduces memory allocations during column normalization
+  - Applied to both DbtCatalogNode and DbtModel
+
+- **Configuration validation improvements**
+  - Added `ValidateFilePaths()` method to check file existence
+  - Better error messages with field names in validation errors
+  - Validates files are readable and not directories
+  - Separated format validation from file validation for testability
+
+- **Dependency management**
+  - Created `.github/dependabot.yml` - Automated dependency updates
+  - Weekly updates for Go modules and GitHub Actions
+  - Automated security vulnerability updates
+  - PR limit of 5 to avoid overwhelming maintainers
+  - Proper labels and conventional commit messages
+
+- **User experience improvements**
+  - Improved CLI help text with usage examples and clear flag descriptions
+  - Created `example.config.yaml` - Complete configuration template with scenarios
+  - Created `docs/public/configuration.md` - Comprehensive configuration guide
+  - Created `docs/public/cli-reference.md` - Complete CLI command reference
+  - Grouped flags by category (Core, Filtering, Generation, Error Handling)
+  - Added detailed flag descriptions with examples
 
 - **Open-source project infrastructure**
   - Created `LICENSE` - MIT License for maximum compatibility

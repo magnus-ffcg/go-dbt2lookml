@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -27,8 +28,6 @@ type Config struct {
 
 	// Generation options
 	UseTableName       bool     `mapstructure:"use_table_name"`
-	GenerateLocale     bool     `mapstructure:"generate_locale"`
-	IncludeISOFields   bool     `mapstructure:"include_iso_fields"`
 	Timeframes         []string `mapstructure:"timeframes"`
 	RemoveSchemaString string   `mapstructure:"remove_schema_string"`
 	Flatten            bool     `mapstructure:"flatten"`
@@ -57,6 +56,38 @@ func LoadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
+// validateFilePath checks if a file exists and is readable
+func validateFilePath(path, fieldName string) error {
+	if path == "" {
+		return nil // Already checked in Validate()
+	}
+
+	// Check if file exists
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s: file not found: %s", fieldName, path)
+		}
+		return fmt.Errorf("%s: cannot access file: %s (%w)", fieldName, path, err)
+	}
+
+	// Check if it's a regular file
+	if info.IsDir() {
+		return fmt.Errorf("%s: path is a directory, not a file: %s", fieldName, path)
+	}
+
+	// Check if file is readable
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("%s: file is not readable: %s (%w)", fieldName, path, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("%s: error closing file: %s (%w)", fieldName, path, err)
+	}
+
+	return nil
+}
+
 // setDefaults sets default configuration values
 func setDefaults() {
 	viper.SetDefault("target_dir", ".")
@@ -64,8 +95,6 @@ func setDefaults() {
 	viper.SetDefault("log_level", "INFO")
 	viper.SetDefault("exposures_only", false)
 	viper.SetDefault("use_table_name", false)
-	viper.SetDefault("generate_locale", false)
-	viper.SetDefault("include_iso_fields", false)
 	viper.SetDefault("flatten", false)
 	viper.SetDefault("continue_on_error", false)
 	viper.SetDefault("include_models", []string{})
@@ -115,6 +144,18 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	return nil
+}
+
+// ValidateFilePaths validates that required file paths exist and are readable
+// This is separate from Validate() to allow configuration validation without file access
+func (c *Config) ValidateFilePaths() error {
+	if err := validateFilePath(c.ManifestPath, "manifest_path"); err != nil {
+		return err
+	}
+	if err := validateFilePath(c.CatalogPath, "catalog_path"); err != nil {
+		return err
+	}
 	return nil
 }
 

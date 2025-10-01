@@ -130,7 +130,7 @@ type DbtCatalogNode struct {
 // NormalizeColumnNames converts all column names to lowercase for case-insensitive matching
 // but preserves the original name for LookML generation
 func (n *DbtCatalogNode) NormalizeColumnNames() {
-	normalizedColumns := make(map[string]DbtCatalogNodeColumn)
+	normalizedColumns := make(map[string]DbtCatalogNodeColumn, len(n.Columns))
 	for name, column := range n.Columns {
 		lowerName := strings.ToLower(name)
 		// Preserve the original name for proper LookML naming
@@ -244,7 +244,7 @@ type DbtModel struct {
 
 // NormalizeColumnNames converts all column names to lowercase for case-insensitive matching
 func (m *DbtModel) NormalizeColumnNames() {
-	normalizedColumns := make(map[string]DbtModelColumn)
+	normalizedColumns := make(map[string]DbtModelColumn, len(m.Columns))
 	for name, column := range m.Columns {
 		lowerName := strings.ToLower(name)
 		column.Name = lowerName
