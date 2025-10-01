@@ -217,7 +217,7 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 
 	opts := generators.GenerationOptions{
 		ErrorStrategy: errorStrategy,
-		MaxErrors:     0, // No limit
+		MaxErrors:     0,    // No limit
 		Verbose:       true, // Enable verbose logging
 	}
 
