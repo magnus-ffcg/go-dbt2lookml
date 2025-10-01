@@ -84,10 +84,8 @@ func (g *ViewGenerator) getViewName(model *models.DbtModel) string {
 		parts := strings.Split(model.RelationName, ".")
 		tableName := parts[len(parts)-1]
 		tableName = strings.Trim(tableName, "`")
-		log.Printf("DEBUG getViewName: UseTableName=true, RelationName='%s', extracted tableName='%s'", model.RelationName, tableName)
 		return strings.ToLower(tableName)
 	}
-	log.Printf("DEBUG getViewName: UseTableName=false, using model.Name='%s'", model.Name)
 	return model.Name
 }
 
@@ -159,11 +157,6 @@ func (g *ViewGenerator) generateDimensionsWithCollections(model *models.DbtModel
 	// This is needed to generate conflict dimensions for date/time fields before classification
 
 	for colName, column := range columnCollections.MainViewColumns {
-		// Debug: log dimension generation
-		if strings.Contains(colName, "classification") {
-			log.Printf("DEBUG GEN: Generating dimension for %s", colName)
-		}
-
 		// Create a proper deep copy of the column to avoid shared pointer issues
 		columnCopy := models.DbtModelColumn{
 			Name:         colName, // Use the full path from the map key
@@ -193,11 +186,6 @@ func (g *ViewGenerator) generateDimensionsWithCollections(model *models.DbtModel
 		if column.LookMLLongName != nil {
 			lookmlLongNameCopy := *column.LookMLLongName
 			columnCopy.LookMLLongName = &lookmlLongNameCopy
-		}
-
-		// Debug: verify the column name is set correctly
-		if strings.Contains(colName, "classification") {
-			log.Printf("DEBUG COLUMN COPY: Setting column name to '%s'", columnCopy.Name)
 		}
 
 		dimension, err := g.dimensionGenerator.GenerateDimension(model, &columnCopy)
