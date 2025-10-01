@@ -66,7 +66,9 @@ nested structures (STRUCT, ARRAY) and provides flexible error handling.`,
 
   # Generate only models referenced in exposures
   dbt2lookml --exposures-only --manifest-path target/manifest.json --catalog-path target/catalog.json`,
-	RunE: runDbt2Lookml,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runDbt2Lookml,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
