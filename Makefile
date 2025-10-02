@@ -194,3 +194,30 @@ version-major: ## Bump major version (e.g., v1.2.3 -> v2.0.0)
 	@git tag -a $(NEW_VERSION) -m "Release $(NEW_VERSION)"
 	@git push origin $(NEW_VERSION)
 	@echo "✅ Tagged and pushed $(NEW_VERSION)"
+
+# Documentation targets
+docs-serve: ## Serve documentation locally (requires hugo)
+	@if ! command -v hugo > /dev/null; then \
+		echo "❌ Hugo not found. Install from: https://gohugo.io/installation/"; \
+		exit 1; \
+	fi
+	cd docs && hugo server -D
+
+docs-build: ## Build documentation (requires hugo)
+	@if ! command -v hugo > /dev/null; then \
+		echo "❌ Hugo not found. Install from: https://gohugo.io/installation/"; \
+		exit 1; \
+	fi
+	cd docs && hugo --minify
+
+docs-clean: ## Clean Hugo build artifacts
+	rm -rf docs/public docs/resources
+
+docs-api: ## Generate API documentation from Go packages (requires gomarkdoc)
+	@if ! command -v gomarkdoc > /dev/null; then \
+		echo "❌ gomarkdoc not found. Install with: go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest"; \
+		exit 1; \
+	fi
+	./scripts/generate-api-docs.sh
+
+docs-full: docs-api docs-build ## Generate API docs and build Hugo site

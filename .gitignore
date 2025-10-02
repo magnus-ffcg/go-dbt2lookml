@@ -55,3 +55,9 @@ tests/integration/output/
 
 # Ignore .work directory but allow docs
 .work/
+
+# Hugo
+docs/public/
+docs/resources/
+docs/.hugo_build.lock
+docs/content/docs/api/  # Generated API docs

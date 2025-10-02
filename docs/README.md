@@ -1,86 +1,179 @@
-# dbt2lookml Documentation
+# Documentation
 
-This directory contains all documentation for the dbt2lookml project, organized into two main categories:
+This directory contains the documentation for go-dbt2lookml, built with [Hugo](https://gohugo.io/) using the [hugo-book](https://github.com/alex-shpak/hugo-book) theme.
 
-## 📁 Documentation Structure
+## 🚀 Quick Start
 
-### `/public` - User-Facing Documentation
-**Audience:** End users, analysts, data engineers using dbt2lookml
+### Prerequisites
 
-Documentation for users of the tool:
-- Installation guides
-- Usage examples
-- Configuration reference
-- Troubleshooting
-- Best practices
-- FAQ
+- [Hugo Extended](https://gohugo.io/installation/) v0.112+ installed
 
-**Publishing:** This documentation is suitable for GitHub Pages, README, or external documentation sites.
+### Local Development
 
-### `/development` - Developer Documentation
-**Audience:** Contributors, maintainers, developers working on dbt2lookml
+```bash
+# Serve documentation locally at http://localhost:1313
+make docs-serve
 
-Documentation for developers contributing to the project:
-- Architecture overview
-- Code structure
-- Development setup
-- Testing guidelines
-- Design decisions
-- API documentation
-- Performance notes
+# Or directly with Hugo
+cd docs && hugo server -D
+```
 
-**Publishing:** Internal documentation for the development team.
+The site will auto-reload when you edit documentation files.
 
-## 📖 Quick Links
+### Build Documentation
 
-### For Users
-- [Getting Started](public/getting-started.md)
-- [Configuration Guide](public/configuration.md)
-- [CLI Reference](public/cli-reference.md)
-- [Error Handling](public/error-handling.md)
-- [Examples](public/examples/)
+```bash
+# Build static site to public/ directory
+make docs-build
 
-### For Developers
-- [Development Setup](development/setup.md)
-- [Architecture](development/architecture.md)
-- [Contributing Guidelines](../CONTRIBUTING.md)
-- [Testing Guide](development/testing.md)
-- [Domain Services](development/domain-services.md)
+# Or directly
+cd docs && hugo --minify
+```
 
-## 🎯 Documentation Goals
+## 📁 Structure
 
-1. **User-Focused:** Clear, actionable guidance for users
-2. **Developer-Friendly:** Comprehensive technical documentation
-3. **Well-Organized:** Easy to find information
-4. **Up-to-Date:** Maintained alongside code changes
-5. **Examples-Rich:** Real-world use cases and code samples
+```
+docs/
+├── hugo.yaml              # Hugo configuration
+├── content/               # Documentation content
+│   ├── _index.md         # Home page
+│   ├── getting-started.md
+│   ├── configuration.md
+│   ├── cli-reference.md
+│   ├── error-handling.md
+│   ├── api/              # Auto-generated API docs (gitignored)
+│   │   ├── models.md
+│   │   ├── parsers.md
+│   │   ├── generators.md
+│   │   └── ...
+│   └── development/      # Development guides
+│       ├── contributing.md
+│       └── testing.md
+├── themes/
+│   └── hugo-book/        # Hugo Book theme (submodule)
+└── public/               # Generated site (ignored by git)
+```
 
-## 📝 Contributing to Documentation
+## ✍️ Writing Documentation
 
-When adding or updating documentation:
+### Page Front Matter
 
-1. **User docs** (`public/`) - Focus on what and how, avoid implementation details
-2. **Developer docs** (`development/`) - Include architecture, design decisions, and technical details
-3. **Keep it updated** - Update docs as part of your PR
-4. **Add examples** - Code samples help tremendously
-5. **Link between docs** - Cross-reference related documentation
+All content pages should have front matter:
 
-## 🔄 Documentation Workflow
-
-1. **Plan:** Identify what needs documenting
-2. **Write:** Create clear, concise documentation
-3. **Review:** Have someone else read it
-4. **Update:** Keep docs in sync with code
-5. **Organize:** Put docs in the right category
-
-## 🌐 Publishing
-
-### GitHub Pages (Future)
-The `public/` documentation can be published to GitHub Pages for easy access.
-
-### README Integration
-Key documentation should be linked from the main README.md.
-
+```markdown
+---
+title: Page Title
+weight: 10
+bookToc: true
 ---
 
-**Last Updated:** 2025-10-01
+# Page Content
+```
+
+### Hugo Shortcodes
+
+**Tabs:**
+```markdown
+{{< tabs "unique-id" >}}
+{{< tab "Tab 1" >}}
+Content for tab 1
+{{< /tab >}}
+{{< tab "Tab 2" >}}
+Content for tab 2
+{{< /tab >}}
+{{< /tabs >}}
+```
+
+**Hints (Callouts):**
+```markdown
+{{< hint info >}}
+**Info**  
+This is an info box.
+{{< /hint >}}
+
+{{< hint warning >}}
+**Warning**  
+This is a warning.
+{{< /hint >}}
+
+{{< hint danger >}}
+**Danger**  
+This is dangerous!
+{{< /hint >}}
+```
+
+**Buttons:**
+```markdown
+{{< button href="https://example.com" >}}Click Me{{< /button >}}
+```
+
+### Adding New Pages
+
+1. Create a new `.md` file in `content/`
+2. Add front matter with title and weight
+3. Hugo will automatically add it to the menu
+
+## 📚 API Documentation
+
+Generate API documentation from Go source code:
+
+```bash
+# Generate API docs from pkg/ packages
+make docs-api
+
+# Generate API docs + build Hugo site
+make docs-full
+```
+
+This reads your godoc comments and creates markdown files in `content/api/`.
+
+**Packages documented:**
+- `pkg/models` - Core data models
+- `pkg/parsers` - Parsing logic
+- `pkg/generators` - LookML generation
+- `pkg/enums` - Enumerations
+- `pkg/utils` - Utility functions
+
+## 🚀 Deployment
+
+Documentation is automatically deployed to GitHub Pages when changes are pushed to `main`.
+
+The workflow:
+1. GitHub Actions generates API docs from Go code
+2. Builds the site with Hugo
+3. Uploads artifact to GitHub Pages
+4. Site is available at: https://magnus-ffcg.github.io/go-dbt2lookml/
+
+## 📝 Configuration
+
+All configuration is in `hugo.yaml`.
+
+Key settings:
+- `baseURL` - Site URL
+- `theme` - Theme name (hugo-book)
+- `params` - Theme-specific parameters
+- `menu` - Additional menu items
+
+## 🎨 Theme Features
+
+Hugo Book theme includes:
+- ✅ Light/dark mode toggle
+- ✅ Search functionality
+- ✅ Table of contents
+- ✅ Mobile responsive
+- ✅ Code syntax highlighting
+- ✅ Git integration (edit links)
+
+## 🛠️ Make Commands
+
+```bash
+make docs-serve    # Serve locally with live reload
+make docs-build    # Build static site
+make docs-clean    # Clean build artifacts
+```
+
+## 🔗 Resources
+
+- [Hugo Documentation](https://gohugo.io/documentation/)
+- [Hugo Book Theme](https://github.com/alex-shpak/hugo-book)
+- [Hugo Shortcodes](https://gohugo.io/content-management/shortcodes/)

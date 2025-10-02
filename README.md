@@ -1,110 +1,51 @@
-# dbt2lookml (Go)
+# go-dbt2lookml
 
-Generate LookML views from BigQuery via dbt models.
+**Convert dbt models to LookML views for Looker**
+
+go-dbt2lookml is a CLI tool that generates LookML views from BigQuery via dbt models. It parses dbt manifest and catalog files to create comprehensive LookML views with dimensions, measures, and explores.
 
 ## Features
 
 - Parse dbt manifest and catalog files
 - Generate LookML views, dimensions, measures, and explores
 - Support for complex nested BigQuery structures (ARRAY, STRUCT)
-- CLI interface with rich configuration options
+- Flexible CLI and YAML configuration
 - Comprehensive validation and error handling
+- Continue-on-error mode for partial generation
+- Structured logging with JSON and console output
 
 ## Installation
 
 ```bash
-go install github.com/magnus-ffcg/dbt2lookml/cmd/dbt2lookml@latest
+go install github.com/magnus-ffcg/go-dbt2lookml/cmd/dbt2lookml@latest
 ```
 
-## Usage
+Or download the latest binary from [Releases](https://github.com/magnus-ffcg/go-dbt2lookml/releases).
+
+## Quick Start
 
 ```bash
+# Using dbt target directory
+dbt2lookml --target-dir target --output-dir lookml/views
+
+# Using explicit paths
+dbt2lookml \
+  --manifest-path target/manifest.json \
+  --catalog-path target/catalog.json \
+  --output-dir lookml/views
+
+# With configuration file
 dbt2lookml --config config.yaml
 ```
 
-## Development
+## Documentation
 
-### Quick Start
+Full documentation is available at **https://magnus-ffcg.github.io/go-dbt2lookml/**
 
-```bash
-# Install dependencies
-make deps
+## Contributing
 
-# Run all CI checks locally (same as CI)
-make ci-check
+Contributions are welcome! See the [documentation](https://magnus-ffcg.github.io/go-dbt2lookml/) for development setup, contributing guidelines, and API reference.
 
-# Quick pre-commit checks
-make pre-commit
-```
+## License
 
-### Running Tests
-
-```bash
-# Run all tests
-make test
-
-# Run tests with race detector (like CI)
-make test-race
-
-# Run with coverage
-make test-coverage
-```
-
-### Building
-
-```bash
-# Build binary
-make build
-
-# Build for all platforms
-make build-all
-```
-
-### Code Quality
-
-```bash
-# Format code
-make fmt
-
-# Lint code (requires golangci-lint v2.5+)
-make lint
-
-# Run go vet
-go vet ./...
-```
-
-**Install golangci-lint v2.5+:**
-
-```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
-```
-
-### Pre-commit Hooks
-
-Set up Git hooks to run checks before each commit:
-
-```bash
-# Option 1: Use the .githooks directory
-git config core.hooksPath .githooks
-
-# Option 2: Install pre-commit (requires Python)
-pip install pre-commit
-pre-commit install
-```
-
-### Available Make Targets
-
-Run `make help` to see all available targets:
-
-```bash
-make help
-```
-```
-
-## Architecture
-
-- `cmd/` - CLI application entry points
-- `pkg/` - Public packages (models, parsers, generators)
-- `internal/` - Private application code
-- `tests/` - Test files and fixtures
-- `docs/` - Project documentation, split on development and public docs.
+Apache License 2.0 - see [LICENSE](LICENSE) file for details.
