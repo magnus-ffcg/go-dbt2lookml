@@ -1,3 +1,8 @@
+---
+title: CLI Reference
+weight: 30
+---
+
 # CLI Reference
 
 Complete command-line reference for dbt2lookml.
@@ -575,7 +580,7 @@ ls -la config.yaml
 ---
 
 **Related:**
-- [Getting Started](getting-started.md)
-- [Configuration Guide](configuration.md)
-- [Error Handling](error-handling.md)
-- [Example Config](../../example.config.yaml)
+- [Getting Started]({{< relref "/usage/getting-started" >}})
+- [Configuration Guide]({{< relref "/usage/configuration" >}})
+- [Error Handling]({{< relref "/usage/error-handling" >}})
+- [Example Config]({{< relref "/usage/configuration-example" >}})

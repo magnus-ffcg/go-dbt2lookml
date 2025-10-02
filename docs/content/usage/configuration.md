@@ -39,7 +39,7 @@ Custom: Use `--config path/to/config.yaml`
 
 ### Format
 
-YAML format. See [`example.config.yaml`](../../example.config.yaml) for a complete template.
+YAML format. See [`example.config.yaml`]({{< relref "/usage/configuration-example" >}}) for a complete template.
 
 **Basic example:**
 
@@ -563,7 +563,7 @@ Error: catalog_path not found: /path/to/catalog.json
 ---
 
 **Related:**
-- [Getting Started](getting-started.md)
-- [CLI Reference](cli-reference.md)
-- [Error Handling](error-handling.md)
-- [Example Config](../../example.config.yaml)
+- [Getting Started]({{< relref "/usage/getting-started" >}})
+- [CLI Reference]({{< relref "/usage/cli-reference" >}})
+- [Error Handling]({{< relref "/usage/error-handling" >}})
+- [Example Config]({{< relref "/usage/configuration-example" >}})

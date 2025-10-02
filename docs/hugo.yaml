@@ -9,6 +9,8 @@ params:
   BookSearch: true
   BookRepo: https://github.com/magnus-ffcg/go-dbt2lookml
   BookEditPath: edit/main/docs/content
+  BookMenuBundle: menu
+  BookSection: '*'
 
 markup:
   goldmark:

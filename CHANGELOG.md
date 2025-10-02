@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation organization**
+  - Restructured documentation: removed `docs/` subdirectory, simplified to `usage/` and `development/`
+  - Converted `example.config.yaml` to markdown document `usage/configuration-example.md`
+  - Updated all documentation links to use relative paths
+  - Removed `docs/static/` directory entirely
+
 ### Removed
 
 - **Unimplemented features**

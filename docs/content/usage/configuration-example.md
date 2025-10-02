@@ -1,3 +1,6 @@
+# Configuration Example
+
+```yaml
 # dbt2lookml Configuration Example
 # ====================================
 # This file shows all available configuration options with explanations.
@@ -90,73 +93,4 @@ target_dir: .             # dbt target directory (rarely needs changing)
 # Path to write processing report (JSON format)
 # report: processing_report.json
 
-# =============================================================================
-# Common Scenarios
-# =============================================================================
-
-# Scenario 1: Basic Usage (Most Common)
-# --------------------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-
-# Scenario 2: Tagged Models Only
-# -------------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-# tag: looker
-
-# Scenario 3: Development with Error Tolerance
-# ---------------------------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-# continue_on_error: true
-# log_level: DEBUG
-# report: generation_report.json
-
-# Scenario 4: Exposures Only
-# ---------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-# exposures_only: true
-
-# Scenario 5: Custom Timeframes
-# ------------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-# timeframes:
-#   - date
-#   - week
-#   - month
-#   - quarter
-#   - year
-
-# Scenario 6: Flat Output Structure
-# ----------------------------------
-# manifest_path: target/manifest.json
-# catalog_path: target/catalog.json
-# output_dir: lookml/views
-# flatten: true
-
-# =============================================================================
-# Environment Variables
-# =============================================================================
-# You can use environment variables in your config using ${VAR_NAME} syntax:
-#
-# manifest_path: ${DBT_TARGET_DIR}/manifest.json
-# catalog_path: ${DBT_TARGET_DIR}/catalog.json
-# output_dir: ${LOOKML_OUTPUT_DIR}
-
-# =============================================================================
-# Notes
-# =============================================================================
-# - Flags on command line override config file settings
-# - Use `--config path/to/config.yaml` to specify a custom config location
-# - Default config path is `./config.yaml`
-# - Boolean values: true, false (lowercase, no quotes)
-# - Strings with spaces should be quoted: "my value"
-# - Lists use YAML array syntax (see examples above)
+```

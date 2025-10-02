@@ -1,0 +1,40 @@
+// Custom styles for go-dbt2lookml documentation
+
+// Code block styling
+.book-page {
+  // Inline code
+  code {
+    background-color: #e8e8e8;
+    color: #000;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+  }
+
+  // Code blocks
+  pre {
+    background-color: #e8e8e8 !important;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    
+    code {
+      background-color: transparent;
+      color: #000;
+      padding: 0;
+    }
+  }
+}
+
+// Dark mode support
+.dark {
+  .book-page {
+    code {
+      background-color: #2d2d2d;
+      color: #f8f8f2;
+    }
+
+    pre {
+      background-color: #2d2d2d !important;
+      border-color: #444;
+    }
+  }
+}

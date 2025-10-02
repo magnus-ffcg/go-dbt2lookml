@@ -2,6 +2,7 @@
 title: go-dbt2lookml Documentation
 type: docs
 bookToc: false
+bookFlatSection: true
 ---
 
 # go-dbt2lookml
@@ -50,20 +51,20 @@ dbt2lookml \
 ## Documentation
 
 ### Usage
-- **[Getting Started](docs/usage/getting-started)** - Installation and first steps
-- **[Configuration](docs/usage/configuration)** - All configuration options
-- **[CLI Reference](docs/usage/cli-reference)** - Complete command-line reference
-- **[Error Handling](docs/usage/error-handling)** - Error strategies and troubleshooting
+- **[Getting Started]({{< relref "/usage/getting-started" >}})** - Installation and first steps
+- **[Configuration]({{< relref "/usage/configuration" >}})** - All configuration options
+- **[CLI Reference]({{< relref "/usage/cli-reference" >}})** - Complete command-line reference
+- **[Error Handling]({{< relref "/usage/error-handling" >}})** - Error strategies and troubleshooting
 
 ### Development
-- **[Development Setup](docs/development/setup)** - Set up your development environment
-- **[Contributing](docs/development/contributing)** - How to contribute
-- **[Testing](docs/development/testing)** - Testing guide and practices
-- **[API Reference](docs/api)** - Go package documentation
+- **[Development Setup]({{< relref "/development/setup" >}})** - Set up your development environment
+- **[Contributing]({{< relref "/development/contributing" >}})** - How to contribute
+- **[Testing]({{< relref "/development/testing" >}})** - Testing guide and practices
+- **[API Reference]({{< relref "/api" >}})** - Go package documentation
 
 ## Contributing
 
-Contributions are welcome! Please see our [Contributing Guide](docs/development/contributing) for details.
+Contributions are welcome! Please see our [Contributing Guide]({{< relref "/development/contributing" >}}) for details.
 
 ## License
 
