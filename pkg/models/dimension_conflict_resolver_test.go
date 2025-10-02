@@ -3,6 +3,7 @@ package models
 import (
 	"testing"
 
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestDimensionConflictResolver_NoConflicts(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "id", Type: "number"},
@@ -36,7 +37,7 @@ func TestDimensionConflictResolver_NoConflicts(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_WithConflicts(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "id", Type: "number"},
@@ -72,7 +73,7 @@ func TestDimensionConflictResolver_WithConflicts(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_MultipleConflicts(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "created_date", Type: "string"}, // Conflicts
@@ -108,7 +109,7 @@ func TestDimensionConflictResolver_MultipleConflicts(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_BaseDimensionGroupName(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "created", Type: "string"}, // Conflicts with base dimension group name
@@ -131,7 +132,7 @@ func TestDimensionConflictResolver_BaseDimensionGroupName(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_CustomSuffix(t *testing.T) {
-	resolver := NewDimensionConflictResolverWithOptions("_dimension", true, false)
+	resolver := NewDimensionConflictResolverWithOptions("_dimension", true, &config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "created_date", Type: "string"},
@@ -152,7 +153,7 @@ func TestDimensionConflictResolver_CustomSuffix(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_NoHiding(t *testing.T) {
-	resolver := NewDimensionConflictResolverWithOptions("_conflict", false, false)
+	resolver := NewDimensionConflictResolverWithOptions("_conflict", false, &config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "created_date", Type: "string"},
@@ -174,7 +175,7 @@ func TestDimensionConflictResolver_NoHiding(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_EmptyInputs(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	t.Run("empty dimensions", func(t *testing.T) {
 		result := resolver.Resolve([]LookMLDimension{}, []LookMLDimensionGroup{{Name: "created"}}, "test")
@@ -194,7 +195,7 @@ func TestDimensionConflictResolver_EmptyInputs(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_GetConflictingDimensions(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "id", Type: "number"},
@@ -219,7 +220,7 @@ func TestDimensionConflictResolver_GetConflictingDimensions(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_GetReservedNames(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensionGroups := []LookMLDimensionGroup{
 		{
@@ -248,7 +249,7 @@ func TestDimensionConflictResolver_GetReservedNames(t *testing.T) {
 }
 
 func TestDimensionConflictResolver_DimensionGroupWithoutTimeframes(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{Name: "created", Type: "string"},
@@ -270,7 +271,7 @@ func TestDimensionConflictResolver_DimensionGroupWithoutTimeframes(t *testing.T)
 }
 
 func TestDimensionConflictResolver_PreservesOtherAttributes(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	dimensions := []LookMLDimension{
 		{
@@ -310,7 +311,7 @@ func TestDimensionConflictResolver_PreservesOtherAttributes(t *testing.T) {
 
 // Test real-world scenario from BigQuery with nested STRUCT and TIMESTAMP fields
 func TestDimensionConflictResolver_RealWorldScenario(t *testing.T) {
-	resolver := NewDimensionConflictResolver()
+	resolver := NewDimensionConflictResolver(&config.Config{})
 
 	// Scenario: Model has nested STRUCT with fields that conflict with dimension groups
 	dimensions := []LookMLDimension{

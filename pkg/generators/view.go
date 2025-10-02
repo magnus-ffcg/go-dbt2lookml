@@ -202,7 +202,7 @@ func (g *ViewGenerator) generateDimensionsWithCollections(model *models.DbtModel
 
 // resolveConflicts uses the domain service to resolve dimension/dimension-group naming conflicts
 func (g *ViewGenerator) resolveConflicts(dimensions []models.LookMLDimension, dimensionGroups []models.LookMLDimensionGroup, modelName string) []models.LookMLDimension {
-	resolver := models.NewDimensionConflictResolver()
+	resolver := models.NewDimensionConflictResolver(g.config)
 	return resolver.Resolve(dimensions, dimensionGroups, modelName)
 }
 

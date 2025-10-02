@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +17,7 @@ func TestCatalogParser_NewCatalogParser(t *testing.T) {
 	}
 	rawCatalog := map[string]interface{}{}
 
-	parser := NewCatalogParser(catalog, rawCatalog)
+	parser := NewCatalogParser(catalog, rawCatalog, &config.Config{})
 	assert.NotNil(t, parser)
 }
 
@@ -117,7 +118,7 @@ func TestCatalogParser_ProcessModelColumns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := NewCatalogParser(tt.catalog, map[string]interface{}{})
+			parser := NewCatalogParser(tt.catalog, map[string]interface{}{}, &config.Config{})
 
 			processedModel, err := parser.ProcessModelColumns(tt.model)
 			require.NoError(t, err)
@@ -150,7 +151,7 @@ func TestCatalogParser_GetCatalogColumn(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	// Test existing column
 	col, found := parser.GetCatalogColumn("model.test.test_model", "id")
@@ -188,7 +189,7 @@ func TestCatalogParser_IsArrayType(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	assert.True(t, parser.IsArrayType("model.test.test_model", "tags"))
 	assert.False(t, parser.IsArrayType("model.test.test_model", "id"))
@@ -214,7 +215,7 @@ func TestCatalogParser_IsStructType(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	assert.True(t, parser.IsStructType("model.test.test_model", "address"))
 	assert.False(t, parser.IsStructType("model.test.test_model", "id"))
@@ -248,7 +249,7 @@ func TestCatalogParser_GetNestedColumns(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	nestedCols := parser.GetNestedColumns("model.test.test_model", "address")
 	assert.Len(t, nestedCols, 2)
@@ -284,7 +285,7 @@ func TestCatalogParser_GetColumnType(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	colType, found := parser.GetColumnType("model.test.test_model", "id")
 	assert.True(t, found)
@@ -311,7 +312,7 @@ func TestCatalogParser_GetColumnDataType(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	dataType, found := parser.GetColumnDataType("model.test.test_model", "tags")
 	assert.True(t, found)
@@ -395,7 +396,7 @@ func TestCatalogParser_ProcessModelColumnsWithNested(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	processedModel, err := parser.ProcessModelColumns(model)
 	require.NoError(t, err)
@@ -448,7 +449,7 @@ func TestCatalogParser_ProcessModelColumnsPreservesOriginalName(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	processedModel, err := parser.ProcessModelColumns(model)
 	require.NoError(t, err)
@@ -490,7 +491,7 @@ func TestCatalogParser_GetColumnInnerTypes(t *testing.T) {
 		},
 	}
 
-	parser := NewCatalogParser(catalog, map[string]interface{}{})
+	parser := NewCatalogParser(catalog, map[string]interface{}{}, &config.Config{})
 
 	innerTypes, found := parser.GetColumnInnerTypes("model.test.test_model", "metadata")
 	assert.True(t, found)
@@ -563,7 +564,7 @@ func TestCatalogParser_ProcessModelColumnsEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := NewCatalogParser(tt.catalog, map[string]interface{}{})
+			parser := NewCatalogParser(tt.catalog, map[string]interface{}{}, &config.Config{})
 
 			processedModel, err := parser.ProcessModelColumns(tt.model)
 			require.NoError(t, err)

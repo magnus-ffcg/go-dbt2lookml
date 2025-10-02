@@ -48,7 +48,6 @@ func TestDefaultGenerationOptions(t *testing.T) {
 
 	assert.Equal(t, FailFast, opts.ErrorStrategy)
 	assert.Equal(t, 0, opts.MaxErrors)
-	assert.False(t, opts.Verbose)
 }
 
 func TestModelError_String(t *testing.T) {
@@ -141,12 +140,10 @@ func TestGenerationOptions_CustomValues(t *testing.T) {
 	opts := GenerationOptions{
 		ErrorStrategy: FailAtEnd,
 		MaxErrors:     10,
-		Verbose:       true,
 	}
 
 	assert.Equal(t, FailAtEnd, opts.ErrorStrategy)
 	assert.Equal(t, 10, opts.MaxErrors)
-	assert.True(t, opts.Verbose)
 }
 
 func TestGenerationResult_Metrics(t *testing.T) {

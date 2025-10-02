@@ -3,6 +3,7 @@ package parsers
 import (
 	"testing"
 
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ func TestModelParser_FilterModels(t *testing.T) {
 	manifest := &models.DbtManifest{
 		Nodes: map[string]interface{}{},
 	}
-	parser := NewModelParser(manifest)
+	parser := NewModelParser(manifest, &config.Config{})
 
 	// Create test models
 	models := []*models.DbtModel{
@@ -166,7 +167,7 @@ func TestModelParser_TagMatching(t *testing.T) {
 	manifest := &models.DbtManifest{
 		Nodes: map[string]interface{}{},
 	}
-	parser := NewModelParser(manifest)
+	parser := NewModelParser(manifest, &config.Config{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -219,7 +220,7 @@ func TestModelParser_GetModelByName(t *testing.T) {
 		},
 	}
 
-	parser := NewModelParser(manifest)
+	parser := NewModelParser(manifest, &config.Config{})
 
 	tests := []struct {
 		name        string
@@ -296,7 +297,7 @@ func TestModelParser_GetModelsByTag(t *testing.T) {
 		},
 	}
 
-	parser := NewModelParser(manifest)
+	parser := NewModelParser(manifest, &config.Config{})
 
 	tests := []struct {
 		name           string
@@ -373,7 +374,7 @@ func TestModelParser_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := NewModelParser(tt.manifest)
+			parser := NewModelParser(tt.manifest, &config.Config{})
 
 			models, err := parser.GetAllModels()
 			assert.NoError(t, err)

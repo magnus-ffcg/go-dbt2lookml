@@ -1,9 +1,9 @@
 package parsers
 
 import (
-	"log"
 	"strings"
 
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
@@ -11,13 +11,15 @@ import (
 type CatalogParser struct {
 	catalog        *models.DbtCatalog
 	rawCatalogData map[string]interface{}
+	config         *config.Config
 }
 
 // NewCatalogParser creates a new CatalogParser instance
-func NewCatalogParser(catalog *models.DbtCatalog, rawCatalog map[string]interface{}) *CatalogParser {
+func NewCatalogParser(catalog *models.DbtCatalog, rawCatalog map[string]interface{}, cfg *config.Config) *CatalogParser {
 	return &CatalogParser{
 		catalog:        catalog,
 		rawCatalogData: rawCatalog,
+		config:         cfg,
 	}
 }
 
@@ -26,7 +28,7 @@ func (p *CatalogParser) ProcessModelColumns(model *models.DbtModel) (*models.Dbt
 	// Find corresponding catalog node
 	catalogNode, exists := p.catalog.Nodes[model.UniqueID]
 	if !exists {
-		log.Printf("No catalog entry found for model: %s", model.Name)
+		p.config.Logger().Debug().Str("model", model.Name).Msg("No catalog entry found for model")
 		return model, nil
 	}
 

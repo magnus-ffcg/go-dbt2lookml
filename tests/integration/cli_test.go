@@ -125,6 +125,7 @@ func TestConfigValidation(t *testing.T) {
 				ManifestPath: "manifest.json",
 				CatalogPath:  "catalog.json",
 				LogLevel:     "INFO",
+				LogFormat:    "console",
 			},
 			expectError: false,
 		},
@@ -133,6 +134,7 @@ func TestConfigValidation(t *testing.T) {
 			config: &config.Config{
 				CatalogPath: "catalog.json",
 				LogLevel:    "INFO",
+				LogFormat:   "console",
 			},
 			expectError: true,
 			errorMsg:    "manifest_path is required",
@@ -142,6 +144,7 @@ func TestConfigValidation(t *testing.T) {
 			config: &config.Config{
 				ManifestPath: "manifest.json",
 				LogLevel:     "INFO",
+				LogFormat:    "console",
 			},
 			expectError: true,
 			errorMsg:    "catalog_path is required",
@@ -152,9 +155,21 @@ func TestConfigValidation(t *testing.T) {
 				ManifestPath: "manifest.json",
 				CatalogPath:  "catalog.json",
 				LogLevel:     "INVALID",
+				LogFormat:    "console",
 			},
 			expectError: true,
 			errorMsg:    "invalid log_level",
+		},
+		{
+			name: "invalid log format",
+			config: &config.Config{
+				ManifestPath: "manifest.json",
+				CatalogPath:  "catalog.json",
+				LogLevel:     "INFO",
+				LogFormat:    "INVALID",
+			},
+			expectError: true,
+			errorMsg:    "invalid log_format",
 		},
 	}
 

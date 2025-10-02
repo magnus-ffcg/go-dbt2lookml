@@ -30,7 +30,6 @@ package parsers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
@@ -82,8 +81,8 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	}
 
 	// Initialize sub-parsers
-	parser.modelParser = NewModelParser(&manifest)
-	parser.catalogParser = NewCatalogParser(&catalog, rawCatalog)
+	parser.modelParser = NewModelParser(&manifest, parser.config)
+	parser.catalogParser = NewCatalogParser(&catalog, rawCatalog, parser.config)
 	parser.exposureParser = NewExposureParser(&manifest)
 
 	return parser, nil
@@ -134,7 +133,7 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 		} else {
 			failedModels = append(failedModels, model.Name)
 			if err != nil {
-				log.Printf("Failed to process model %s: %v", model.Name, err)
+				p.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to process model")
 			}
 		}
 	}
@@ -147,9 +146,9 @@ func (p *DbtParser) GetModels() ([]*models.DbtModel, error) {
 			displayNames = displayNames[:5]
 		}
 
-		log.Printf("Failed to process %d models during catalog parsing: %v", failedCount, displayNames)
+		p.config.Logger().Warn().Int("failed_count", failedCount).Strs("models", displayNames).Msg("Failed to process models during catalog parsing")
 		if len(failedModels) > 5 {
-			log.Printf("... and %d more", len(failedModels)-5)
+			p.config.Logger().Warn().Int("additional", len(failedModels)-5).Msg("Additional models failed")
 		}
 	}
 

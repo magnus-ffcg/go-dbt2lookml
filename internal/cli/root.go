@@ -4,20 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
-
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/generators"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/parsers"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 // cliFlags holds all CLI flag values in a single struct
@@ -30,6 +30,7 @@ type cliFlags struct {
 	outputDir                   string
 	tag                         string
 	logLevel                    string
+	logFormat                   string
 	selectModel                 string
 	exposuresOnly               bool
 	exposuresTag                string
@@ -111,6 +112,7 @@ func init() {
 
 	// Error Handling & Logging
 	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Logging level: DEBUG, INFO, WARN, ERROR")
+	rootCmd.Flags().StringVar(&flags.logFormat, "log-format", "console", "Log output format: json, console")
 	rootCmd.Flags().BoolVar(&flags.continueOnError, "continue-on-error", false, "Continue processing remaining models if errors occur")
 	rootCmd.Flags().StringVar(&flags.reportPath, "report", "", "Path to write processing report (JSON format)")
 
@@ -132,6 +134,7 @@ func init() {
 	_ = viper.BindPFlag("flatten", rootCmd.Flags().Lookup("flatten"))
 	_ = viper.BindPFlag("nested_view_explicit_reference", rootCmd.Flags().Lookup("nested-view-explicit-reference"))
 	_ = viper.BindPFlag("log_level", rootCmd.Flags().Lookup("log-level"))
+	_ = viper.BindPFlag("log_format", rootCmd.Flags().Lookup("log-format"))
 	_ = viper.BindPFlag("continue_on_error", rootCmd.Flags().Lookup("continue-on-error"))
 	_ = viper.BindPFlag("report", rootCmd.Flags().Lookup("report"))
 }
@@ -152,7 +155,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Printf("Using config file: %s", viper.ConfigFileUsed())
+		log.Info().Str("file", viper.ConfigFileUsed()).Msg("Using config file")
 	}
 }
 
@@ -172,15 +175,15 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 	}
 
 	// Set up logging
-	setupLogging(cfg.LogLevel)
+	logger := setupLogging(cfg.LogLevel, cfg.LogFormat)
+	cfg.SetLogger(logger)
+	log.Logger = logger // Set global logger for log.Info(), log.Debug(), etc.
 
-	log.Printf("Starting dbt2lookml conversion...")
-	log.Printf("Manifest: %s", cfg.ManifestPath)
-	log.Printf("Catalog: %s", cfg.CatalogPath)
-	log.Printf("Output: %s", cfg.OutputDir)
+	log.Info().Msg("Starting dbt2lookml conversion")
+	log.Info().Str("manifest", cfg.ManifestPath).Str("catalog", cfg.CatalogPath).Str("output", cfg.OutputDir).Msg("Configuration")
 
 	// Load manifest and catalog files
-	log.Printf("Loading dbt files...")
+	log.Info().Msg("Loading dbt files")
 	parseStart := time.Now()
 
 	rawManifest, err := loadJSONFile(cfg.ManifestPath)
@@ -205,15 +208,15 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 	}
 
 	parseTime := time.Since(parseStart)
-	log.Printf("Parsed %d models in %v", len(models), parseTime)
+	log.Info().Int("count", len(models)).Dur("time", parseTime).Msg("Parsed models")
 
 	if len(models) == 0 {
-		log.Printf("No models found matching the specified criteria")
+		log.Warn().Msg("No models found matching the specified criteria")
 		return nil
 	}
 
 	// Generate LookML
-	log.Printf("Generating LookML files...")
+	log.Info().Msg("Generating LookML files")
 	generateStart := time.Now()
 
 	generator := generators.NewLookMLGenerator(cfg)
@@ -228,14 +231,13 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 
 	opts := generators.GenerationOptions{
 		ErrorStrategy: errorStrategy,
-		MaxErrors:     0,    // No limit
-		Verbose:       true, // Enable verbose logging
+		MaxErrors:     0, // No limit
 	}
 
 	result, err := generator.GenerateAllWithOptions(context.Background(), models, opts)
 	if err != nil {
 		if cfg.ContinueOnError {
-			log.Printf("Warning: Generation completed with errors: %v", err)
+			log.Warn().Err(err).Msg("Generation completed with errors")
 		} else {
 			return fmt.Errorf("failed to generate LookML: %w", err)
 		}
@@ -243,9 +245,9 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 
 	// Report any model-specific errors
 	if result.HasErrors() {
-		log.Printf("Warning: %d models failed to generate:", len(result.Errors))
+		log.Warn().Int("failed", len(result.Errors)).Msg("Models failed to generate")
 		for _, modelErr := range result.Errors {
-			log.Printf("  - %s", modelErr.String())
+			log.Warn().Str("model", modelErr.ModelName).Err(modelErr.Error).Msg("Model generation failed")
 		}
 	}
 
@@ -254,19 +256,17 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 
 	// Report results
 	if !result.HasErrors() || cfg.ContinueOnError {
-		log.Printf("Generation completed!")
+		log.Info().Msg("Generation completed")
 	}
-	log.Printf("Files generated: %d/%d", result.FilesGenerated, result.ModelsProcessed)
-	log.Printf("Parsing time: %v", parseTime)
-	log.Printf("Generation time: %v", generateTime)
-	log.Printf("Total time: %v", totalTime)
+	log.Info().Int("files", result.FilesGenerated).Int("models", result.ModelsProcessed).Msg("Results")
+	log.Info().Dur("parse", parseTime).Dur("generation", generateTime).Dur("total", totalTime).Msg("Timing")
 
 	// Generate report if requested
 	if cfg.ReportPath != "" {
 		if err := generateReport(cfg.ReportPath, models, result.FilesGenerated, parseTime, generateTime, totalTime); err != nil {
-			log.Printf("Warning: Failed to generate report: %v", err)
+			log.Warn().Err(err).Msg("Failed to generate report")
 		} else {
-			log.Printf("Report generated: %s", cfg.ReportPath)
+			log.Info().Str("path", cfg.ReportPath).Msg("Report generated")
 		}
 	}
 
@@ -288,18 +288,39 @@ func loadJSONFile(path string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// setupLogging configures the logging level
-func setupLogging(level string) {
-	switch strings.ToUpper(level) {
-	case "DEBUG":
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-	case "INFO":
-		log.SetFlags(log.LstdFlags)
-	case "WARN", "ERROR":
-		log.SetFlags(log.LstdFlags)
-	default:
-		log.SetFlags(log.LstdFlags)
+// setupLogging configures zerolog and returns a logger
+func setupLogging(level, format string) zerolog.Logger {
+	var logger zerolog.Logger
+
+	// Choose output format
+	if strings.ToLower(format) == config.LogFormatJSON {
+		// JSON output - direct to stderr
+		logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+	} else {
+		// Console output - human-readable
+		output := zerolog.ConsoleWriter{
+			Out:        os.Stderr,
+			TimeFormat: "15:04:05",
+			NoColor:    false,
+		}
+		logger = zerolog.New(output).With().Timestamp().Logger()
 	}
+
+	// Set global log level
+	switch strings.ToUpper(level) {
+	case config.LogLevelDebug:
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case config.LogLevelInfo:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case config.LogLevelWarn:
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case config.LogLevelError:
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
+
+	return logger
 }
 
 // generateReport creates a processing report

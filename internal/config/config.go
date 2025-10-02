@@ -5,7 +5,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
+)
+
+// Log level constants
+const (
+	LogLevelDebug = "DEBUG"
+	LogLevelInfo  = "INFO"
+	LogLevelWarn  = "WARN"
+	LogLevelError = "ERROR"
+)
+
+// Log format constants
+const (
+	LogFormatJSON    = "json"
+	LogFormatConsole = "console"
 )
 
 // Config holds all configuration options for dbt2lookml
@@ -35,8 +50,12 @@ type Config struct {
 
 	// Utility options
 	LogLevel        string `mapstructure:"log_level"`
+	LogFormat       string `mapstructure:"log_format"`
 	ContinueOnError bool   `mapstructure:"continue_on_error"`
 	ReportPath      string `mapstructure:"report"`
+
+	// Logger (not marshaled)
+	logger *zerolog.Logger
 }
 
 // LoadConfig loads configuration from viper (which handles CLI flags, config files, and env vars)
@@ -102,6 +121,7 @@ func setDefaults() {
 	viper.SetDefault("target_dir", ".")
 	viper.SetDefault("output_dir", ".")
 	viper.SetDefault("log_level", "INFO")
+	viper.SetDefault("log_format", "console")
 	viper.SetDefault("exposures_only", false)
 	viper.SetDefault("use_table_name", false)
 	viper.SetDefault("flatten", false)
@@ -122,7 +142,7 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate log level
-	validLogLevels := []string{"DEBUG", "INFO", "WARN", "ERROR"}
+	validLogLevels := []string{LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError}
 	logLevel := strings.ToUpper(c.LogLevel)
 	valid := false
 	for _, level := range validLogLevels {
@@ -135,6 +155,21 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid log_level: %s (must be one of: %v)", c.LogLevel, validLogLevels)
 	}
 	c.LogLevel = logLevel
+
+	// Validate log format
+	validLogFormats := []string{LogFormatJSON, LogFormatConsole}
+	logFormat := strings.ToLower(c.LogFormat)
+	valid = false
+	for _, format := range validLogFormats {
+		if logFormat == format {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		return fmt.Errorf("invalid log_format: %s (must be one of: %v)", c.LogFormat, validLogFormats)
+	}
+	c.LogFormat = logFormat
 
 	// Validate timeframes if provided
 	if len(c.Timeframes) > 0 {
@@ -185,7 +220,22 @@ func (c *Config) GetExposureTag() string {
 
 // IsDebugMode returns true if debug logging is enabled
 func (c *Config) IsDebugMode() bool {
-	return c.LogLevel == "DEBUG"
+	return c.LogLevel == LogLevelDebug
+}
+
+// SetLogger sets the logger instance
+func (c *Config) SetLogger(logger zerolog.Logger) {
+	c.logger = &logger
+}
+
+// Logger returns the logger instance
+func (c *Config) Logger() *zerolog.Logger {
+	if c.logger == nil {
+		// Return a noop logger if not set
+		noop := zerolog.Nop()
+		return &noop
+	}
+	return c.logger
 }
 
 // GetOutputPath returns the full output path for a given filename

@@ -25,13 +25,11 @@
 //	    UseTableName: false,
 //	}
 //	generator := NewLookMLGenerator(cfg)
-//	filesGenerated, err := generator.GenerateAll(models)
 package generators
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -108,9 +106,7 @@ func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*
 			// Continue processing
 		}
 
-		if opts.Verbose {
-			log.Printf("Generating LookML for model: %s", model.Name)
-		}
+		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file
 		if err := g.generateViewFile(model); err != nil {
@@ -126,9 +122,7 @@ func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*
 				return result, fmt.Errorf("generation failed on model %s: %w", model.Name, err)
 
 			case FailAtEnd:
-				if opts.Verbose {
-					log.Printf("Warning: failed to generate %s: %v", model.Name, err)
-				}
+				g.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to generate model")
 				// Check if we've hit the error limit
 				if opts.MaxErrors > 0 && len(result.Errors) >= opts.MaxErrors {
 					return result, fmt.Errorf("too many errors (%d), stopping generation", len(result.Errors))
@@ -136,9 +130,7 @@ func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*
 				continue
 
 			case ContinueOnError:
-				if opts.Verbose {
-					log.Printf("Warning: failed to generate %s: %v (continuing)", model.Name, err)
-				}
+				g.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to generate model (continuing)")
 				continue
 			}
 		}
@@ -177,13 +169,13 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 			// Continue processing
 		}
 
-		log.Printf("Generating LookML for model: %s", model.Name)
+		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file (includes explore and nested views inline)
 		if err := g.generateViewFile(model); err != nil {
 			if g.config.ContinueOnError {
 				errorMsg := fmt.Sprintf("failed to generate view for model %s: %v", model.Name, err)
-				log.Printf("Warning: %s", errorMsg)
+				g.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to generate view")
 				errors = append(errors, errorMsg)
 				continue
 			} else {
@@ -237,7 +229,7 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	}
 	fullContent.WriteString(exploreContent)
 
-	log.Printf("Generated %d nested views inline for model %s", nestedViewsCount, model.Name)
+	g.config.Logger().Debug().Int("count", nestedViewsCount).Str("model", model.Name).Msg("Generated nested views inline")
 
 	// Write to file
 	filename := g.getViewFilename(model)
@@ -252,7 +244,7 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 		return fmt.Errorf("failed to write view file: %w", err)
 	}
 
-	log.Printf("Generated view file: %s", filePath)
+	g.config.Logger().Debug().Str("file", filePath).Msg("Generated view file")
 	return nil
 }
 
@@ -261,11 +253,11 @@ func (g *LookMLGenerator) generateNestedViews(model *models.DbtModel) (int, erro
 	// Create column collections to identify array columns
 	columnCollections := models.NewColumnCollections(model, nil)
 
-	log.Printf("Model %s has %d total columns, %d nested views to generate",
-		model.Name, len(model.Columns), len(columnCollections.NestedViewColumns))
+	logger := g.config.Logger()
+	logger.Debug().Str("model", model.Name).Int("total_columns", len(model.Columns)).Int("nested_views", len(columnCollections.NestedViewColumns)).Msg("Processing model columns")
 
 	for arrayName := range columnCollections.NestedViewColumns {
-		log.Printf("Found array column for nested view: %s", arrayName)
+		logger.Debug().Str("array", arrayName).Msg("Found array column for nested view")
 	}
 
 	var filesGenerated int
@@ -325,7 +317,7 @@ func (g *LookMLGenerator) generateNestedViewFile(model *models.DbtModel, arrayNa
 		return fmt.Errorf("failed to write nested view file: %w", err)
 	}
 
-	log.Printf("Generated nested view file: %s", filePath)
+	g.config.Logger().Debug().Str("file", filePath).Msg("Generated nested view file")
 	return nil
 }
 
@@ -356,7 +348,7 @@ func (g *LookMLGenerator) generateExploreFile(model *models.DbtModel) error {
 		return fmt.Errorf("failed to write explore file: %w", err)
 	}
 
-	log.Printf("Generated explore file: %s", filePath)
+	g.config.Logger().Debug().Str("file", filePath).Msg("Generated explore file")
 	return nil
 }
 
@@ -659,7 +651,7 @@ func (g *LookMLGenerator) generateNestedViewsInline(model *models.DbtModel, cont
 		contentBuilder.WriteString(nestedViewContent)
 		viewsGenerated++
 
-		log.Printf("Generated inline nested view: %s", nestedView.Name)
+		g.config.Logger().Debug().Str("view", nestedView.Name).Msg("Generated inline nested view")
 	}
 
 	return viewsGenerated, nil

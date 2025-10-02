@@ -3,9 +3,9 @@ package parsers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
@@ -13,6 +13,7 @@ import (
 // ModelParser handles parsing of DBT models from manifest
 type ModelParser struct {
 	manifest *models.DbtManifest
+	config   *config.Config
 }
 
 // ModelFilterOptions contains options for filtering models
@@ -25,9 +26,10 @@ type ModelFilterOptions struct {
 }
 
 // NewModelParser creates a new ModelParser instance
-func NewModelParser(manifest *models.DbtManifest) *ModelParser {
+func NewModelParser(manifest *models.DbtManifest, cfg *config.Config) *ModelParser {
 	return &ModelParser{
 		manifest: manifest,
+		config:   cfg,
 	}
 }
 
@@ -39,7 +41,7 @@ func (p *ModelParser) GetAllModels() ([]*models.DbtModel, error) {
 	var validModels []*models.DbtModel
 	for _, model := range allModels {
 		if model.Name == "" {
-			log.Printf("Cannot parse model with id: %q - is the model file empty?", model.UniqueID)
+			p.config.Logger().Warn().Str("id", model.UniqueID).Msg("Cannot parse model - is the model file empty?")
 			continue
 		}
 		validModels = append(validModels, model)

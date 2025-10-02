@@ -24,7 +24,6 @@ func TestGenerateAllWithOptions_FailFast(t *testing.T) {
 
 	opts := GenerationOptions{
 		ErrorStrategy: FailFast,
-		Verbose:       false,
 	}
 
 	result, err := gen.GenerateAllWithOptions(context.Background(), models, opts)
@@ -113,7 +112,6 @@ func TestGenerateAllWithOptions_VerboseLogging(t *testing.T) {
 
 	opts := GenerationOptions{
 		ErrorStrategy: FailFast,
-		Verbose:       true, // Enable verbose logging
 	}
 
 	result, err := gen.GenerateAllWithOptions(context.Background(), models, opts)

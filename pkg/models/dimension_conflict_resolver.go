@@ -2,7 +2,8 @@ package models
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 )
 
 // DimensionConflictResolver handles conflicts between dimensions and dimension groups.
@@ -23,25 +24,25 @@ type DimensionConflictResolver struct {
 	// hideConflicts determines if conflicting dimensions should be hidden
 	hideConflicts bool
 
-	// logConflicts determines if conflicts should be logged
-	logConflicts bool
+	// config for accessing log level
+	config *config.Config
 }
 
 // NewDimensionConflictResolver creates a new resolver with default settings.
-func NewDimensionConflictResolver() *DimensionConflictResolver {
+func NewDimensionConflictResolver(cfg *config.Config) *DimensionConflictResolver {
 	return &DimensionConflictResolver{
 		conflictSuffix: "_conflict",
 		hideConflicts:  true,
-		logConflicts:   true,
+		config:         cfg,
 	}
 }
 
 // NewDimensionConflictResolverWithOptions creates a resolver with custom settings.
-func NewDimensionConflictResolverWithOptions(suffix string, hideConflicts, logConflicts bool) *DimensionConflictResolver {
+func NewDimensionConflictResolverWithOptions(suffix string, hideConflicts bool, cfg *config.Config) *DimensionConflictResolver {
 	return &DimensionConflictResolver{
 		conflictSuffix: suffix,
 		hideConflicts:  hideConflicts,
-		logConflicts:   logConflicts,
+		config:         cfg,
 	}
 }
 
@@ -116,10 +117,13 @@ func (r *DimensionConflictResolver) renameConflicts(
 				dimension.Hidden = &hidden
 			}
 
-			// Log the conflict if configured
-			if r.logConflicts {
-				log.Printf("Renamed conflicting dimension '%s' to '%s' in model '%s'",
-					originalName, dimension.Name, modelName)
+			// Log the conflict in DEBUG mode
+			if r.config != nil {
+				r.config.Logger().Debug().
+					Str("original", originalName).
+					Str("renamed", dimension.Name).
+					Str("model", modelName).
+					Msg("Renamed conflicting dimension")
 			}
 		}
 

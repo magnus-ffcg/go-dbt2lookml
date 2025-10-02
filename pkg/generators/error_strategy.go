@@ -43,9 +43,6 @@ type GenerationOptions struct {
 	// MaxErrors limits the number of errors before stopping (0 = unlimited)
 	// Only applies when ErrorStrategy is FailAtEnd
 	MaxErrors int
-
-	// Verbose enables detailed logging during generation
-	Verbose bool
 }
 
 // DefaultGenerationOptions returns the default options (FailFast).
@@ -53,7 +50,6 @@ func DefaultGenerationOptions() GenerationOptions {
 	return GenerationOptions{
 		ErrorStrategy: FailFast,
 		MaxErrors:     0,
-		Verbose:       false,
 	}
 }
 
