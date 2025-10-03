@@ -52,6 +52,7 @@ dbt2lookml \
 
 ### Usage
 - **[Getting Started]({{< relref "/usage/getting-started" >}})** - Installation and first steps
+- **[Practical Usage]({{< relref "/usage/practical-usage" >}})** - Integrate into your dbt workflow
 - **[Configuration]({{< relref "/usage/configuration" >}})** - All configuration options
 - **[CLI Reference]({{< relref "/usage/cli-reference" >}})** - Complete command-line reference
 - **[Error Handling]({{< relref "/usage/error-handling" >}})** - Error strategies and troubleshooting
