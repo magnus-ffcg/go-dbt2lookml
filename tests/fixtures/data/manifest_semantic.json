@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "adapter_type": "bigquery"
+  },
+  "nodes": {
+    "model.test.orders": {
+      "name": "orders",
+      "unique_id": "model.test.orders",
+      "resource_type": "model",
+      "relation_name": "`project.dataset.orders`",
+      "schema": "dataset",
+      "description": "Orders table",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "description": "Order ID"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "description": "Customer ID"
+        },
+        "amount": {
+          "name": "amount",
+          "description": "Order amount"
+        },
+        "order_date": {
+          "name": "order_date",
+          "description": "Order date"
+        }
+      },
+      "tags": ["looker"]
+    }
+  },
+  "semantic_models": {
+    "semantic_model.test.orders_metrics": {
+      "name": "orders_metrics",
+      "model": "ref('orders')",
+      "description": "Order metrics semantic model",
+      "entities": [
+        {
+          "name": "order",
+          "type": "primary",
+          "expr": "order_id"
+        }
+      ],
+      "dimensions": [
+        {
+          "name": "order_date",
+          "type": "time",
+          "type_params": {
+            "time_granularity": "day"
+          }
+        }
+      ],
+      "measures": [
+        {
+          "name": "total_revenue",
+          "description": "Total revenue from orders",
+          "agg": "sum",
+          "expr": "amount"
+        },
+        {
+          "name": "order_count",
+          "description": "Number of orders",
+          "agg": "count"
+        },
+        {
+          "name": "avg_order_value",
+          "description": "Average order value",
+          "agg": "average",
+          "expr": "amount",
+          "label": "Average Order Value"
+        },
+        {
+          "name": "unique_customers",
+          "description": "Count of unique customers",
+          "agg": "count_distinct",
+          "expr": "customer_id"
+        }
+      ],
+      "defaults": {
+        "agg_time_dimension": "order_date"
+      }
+    }
+  },
+  "exposures": {}
+}

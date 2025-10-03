@@ -14,22 +14,32 @@ var _ ViewGeneratorInterface = (*ViewGenerator)(nil)
 
 // ViewGenerator handles generation of LookML views
 type ViewGenerator struct {
-	config             *config.Config
-	dimensionGenerator *DimensionGenerator
-	measureGenerator   *MeasureGenerator
+	config                   *config.Config
+	dimensionGenerator       *DimensionGenerator
+	measureGenerator         *MeasureGenerator
+	semanticMeasureGenerator *SemanticMeasureGenerator
 }
 
 // NewViewGenerator creates a new ViewGenerator instance
 func NewViewGenerator(cfg *config.Config) *ViewGenerator {
 	return &ViewGenerator{
-		config:             cfg,
-		dimensionGenerator: NewDimensionGenerator(cfg),
-		measureGenerator:   NewMeasureGenerator(cfg),
+		config:                   cfg,
+		dimensionGenerator:       NewDimensionGenerator(cfg),
+		measureGenerator:         NewMeasureGenerator(cfg),
+		semanticMeasureGenerator: NewSemanticMeasureGenerator(cfg),
 	}
 }
 
 // GenerateView generates a LookML view from a dbt model
 func (g *ViewGenerator) GenerateView(model *models.DbtModel) (*models.LookMLView, error) {
+	return g.GenerateViewWithSemanticMeasures(model, nil)
+}
+
+// GenerateViewWithSemanticMeasures generates a LookML view from a dbt model with optional semantic measures
+func (g *ViewGenerator) GenerateViewWithSemanticMeasures(
+	model *models.DbtModel,
+	semanticMeasures []models.DbtSemanticMeasure,
+) (*models.LookMLView, error) {
 	// Create column collections once and reuse them
 	columnCollections := models.NewColumnCollections(model, nil)
 
@@ -66,8 +76,8 @@ func (g *ViewGenerator) GenerateView(model *models.DbtModel) (*models.LookMLView
 		view.Dimensions = dimensions
 	}
 
-	// Generate measures
-	measures, err := g.generateMeasures(model)
+	// Generate measures with semantic model support
+	measures, err := g.generateMeasuresWithSemanticModels(model, semanticMeasures)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate measures: %w", err)
 	}
@@ -311,7 +321,29 @@ func (g *ViewGenerator) generateDimensionGroups(model *models.DbtModel, columnCo
 
 // generateMeasures generates measures for the view
 func (g *ViewGenerator) generateMeasures(model *models.DbtModel) ([]models.LookMLMeasure, error) {
-	var measures []models.LookMLMeasure
+	return g.generateMeasuresWithSemanticModels(model, nil)
+}
+
+// generateMeasuresWithSemanticModels generates measures, optionally including semantic model measures
+func (g *ViewGenerator) generateMeasuresWithSemanticModels(
+	model *models.DbtModel,
+	semanticMeasures []models.DbtSemanticMeasure,
+) ([]models.LookMLMeasure, error) {
+	var metaMeasures []*models.LookMLMeasure
+	var semanticLookMLMeasures []*models.LookMLMeasure
+
+	// Generate measures from semantic models if enabled and provided
+	if g.config.UseSemanticModels && len(semanticMeasures) > 0 {
+		generated, err := g.semanticMeasureGenerator.GenerateMeasuresFromSemantic(semanticMeasures, model)
+		if err != nil {
+			g.config.Logger().Warn().
+				Err(err).
+				Str("model", model.Name).
+				Msg("Failed to generate measures from semantic models")
+		} else {
+			semanticLookMLMeasures = generated
+		}
+	}
 
 	// Generate measures from model meta
 	if model.Meta != nil && model.Meta.Looker != nil {
@@ -322,15 +354,44 @@ func (g *ViewGenerator) generateMeasures(model *models.DbtModel) ([]models.LookM
 			}
 
 			if measure != nil {
-				measures = append(measures, *measure)
+				metaMeasures = append(metaMeasures, measure)
 			}
 		}
 	}
 
-	// Generate default count measure
-	countMeasure := g.measureGenerator.GenerateDefaultCountMeasure(model)
-	if countMeasure != nil {
-		measures = append(measures, *countMeasure)
+	// Merge semantic and meta measures (semantic measures take precedence)
+	var mergedMeasures []*models.LookMLMeasure
+	if len(semanticLookMLMeasures) > 0 && len(metaMeasures) > 0 {
+		mergedMeasures = g.semanticMeasureGenerator.MergeWithMetaMeasures(
+			semanticLookMLMeasures,
+			metaMeasures,
+		)
+	} else if len(semanticLookMLMeasures) > 0 {
+		mergedMeasures = semanticLookMLMeasures
+	} else {
+		mergedMeasures = metaMeasures
+	}
+
+	// Convert pointer slice to value slice
+	measures := make([]models.LookMLMeasure, 0, len(mergedMeasures))
+	for _, m := range mergedMeasures {
+		measures = append(measures, *m)
+	}
+
+	// Generate default count measure only if no count measure exists
+	hasCountMeasure := false
+	for _, m := range measures {
+		if m.Name == DefaultCountMeasureName {
+			hasCountMeasure = true
+			break
+		}
+	}
+
+	if !hasCountMeasure {
+		countMeasure := g.measureGenerator.GenerateDefaultCountMeasure(model)
+		if countMeasure != nil {
+			measures = append(measures, *countMeasure)
+		}
 	}
 
 	return measures, nil

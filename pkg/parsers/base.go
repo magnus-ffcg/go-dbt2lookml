@@ -37,12 +37,13 @@ import (
 
 // DbtParser is the main DBT parser that coordinates parsing of manifest and catalog files
 type DbtParser struct {
-	config         *config.Config         // Configuration with CLI arguments
-	rawManifest    map[string]interface{} // Raw manifest data
-	catalog        *models.DbtCatalog
-	modelParser    *ModelParser
-	catalogParser  *CatalogParser
-	exposureParser *ExposureParser
+	config              *config.Config         // Configuration with CLI arguments
+	rawManifest         map[string]interface{} // Raw manifest data
+	catalog             *models.DbtCatalog
+	modelParser         *ModelParser
+	catalogParser       *CatalogParser
+	exposureParser      *ExposureParser
+	semanticModelParser *SemanticModelParser
 }
 
 // NewDbtParser creates a new DbtParser instance
@@ -84,6 +85,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	parser.modelParser = NewModelParser(&manifest, parser.config)
 	parser.catalogParser = NewCatalogParser(&catalog, rawCatalog, parser.config)
 	parser.exposureParser = NewExposureParser(&manifest)
+	parser.semanticModelParser = NewSemanticModelParser(&manifest)
 
 	return parser, nil
 }
@@ -170,4 +172,9 @@ func (p *DbtParser) getIncludeModels() []string {
 
 func (p *DbtParser) getExcludeModels() []string {
 	return p.config.ExcludeModels
+}
+
+// GetSemanticModelParser returns the semantic model parser
+func (p *DbtParser) GetSemanticModelParser() *SemanticModelParser {
+	return p.semanticModelParser
 }

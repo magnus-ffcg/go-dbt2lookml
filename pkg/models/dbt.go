@@ -272,7 +272,8 @@ func (m *DbtManifestMetadata) ValidateAdapter() error {
 
 // DbtManifest represents a dbt manifest
 type DbtManifest struct {
-	Nodes     map[string]interface{} `json:"nodes" yaml:"nodes"` // Can be DbtModel or DbtNode
-	Metadata  DbtManifestMetadata    `json:"metadata" yaml:"metadata"`
-	Exposures map[string]DbtExposure `json:"exposures" yaml:"exposures"`
+	Nodes          map[string]interface{}      `json:"nodes" yaml:"nodes"` // Can be DbtModel or DbtNode
+	Metadata       DbtManifestMetadata         `json:"metadata" yaml:"metadata"`
+	Exposures      map[string]DbtExposure      `json:"exposures" yaml:"exposures"`
+	SemanticModels map[string]DbtSemanticModel `json:"semantic_models,omitempty" yaml:"semantic_models,omitempty"`
 }

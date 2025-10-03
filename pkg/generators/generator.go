@@ -57,6 +57,7 @@ type LookMLGenerator struct {
 	viewGenerator      *ViewGenerator
 	exploreGenerator   *ExploreGenerator
 	measureGenerator   *MeasureGenerator
+	semanticMeasures   map[string][]models.DbtSemanticMeasure // model name -> semantic measures
 }
 
 // NewLookMLGenerator creates a new LookMLGenerator instance
@@ -67,7 +68,13 @@ func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
 		viewGenerator:      NewViewGenerator(cfg),
 		exploreGenerator:   NewExploreGenerator(cfg),
 		measureGenerator:   NewMeasureGenerator(cfg),
+		semanticMeasures:   make(map[string][]models.DbtSemanticMeasure),
 	}
+}
+
+// SetSemanticMeasures sets the semantic measures mapping for generation
+func (g *LookMLGenerator) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
+	g.semanticMeasures = semanticMeasures
 }
 
 // GenerateAll generates all LookML files for the given models.
@@ -199,8 +206,16 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	var fullContent strings.Builder
 
-	// 1. Generate main view first
-	view, err := g.viewGenerator.GenerateView(model)
+	// 1. Generate main view first (with semantic measures if available)
+	var view *models.LookMLView
+	var err error
+
+	if semanticMeasures, exists := g.semanticMeasures[model.Name]; exists && len(semanticMeasures) > 0 {
+		view, err = g.viewGenerator.GenerateViewWithSemanticMeasures(model, semanticMeasures)
+	} else {
+		view, err = g.viewGenerator.GenerateView(model)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to generate view: %w", err)
 	}

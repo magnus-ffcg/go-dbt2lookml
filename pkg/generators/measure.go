@@ -12,6 +12,11 @@ import (
 // Compile-time check to ensure MeasureGenerator implements MeasureGeneratorInterface
 var _ MeasureGeneratorInterface = (*MeasureGenerator)(nil)
 
+const (
+	// DefaultCountMeasureName is the name of the default count measure
+	DefaultCountMeasureName = "count"
+)
+
 // MeasureGenerator handles generation of LookML measures
 type MeasureGenerator struct {
 	config *config.Config
@@ -53,12 +58,10 @@ func (g *MeasureGenerator) GenerateMeasure(model *models.DbtModel, measureMeta *
 
 // GenerateDefaultCountMeasure generates a default count measure for a model
 func (g *MeasureGenerator) GenerateDefaultCountMeasure(model *models.DbtModel) *models.LookMLMeasure {
-	measureName := "count"
-
 	// Check if there's already a count measure defined in meta
 	if model.Meta != nil && model.Meta.Looker != nil {
 		for _, measureMeta := range model.Meta.Looker.Measures {
-			if measureMeta.Name != nil && *measureMeta.Name == measureName {
+			if measureMeta.Name != nil && *measureMeta.Name == DefaultCountMeasureName {
 				// Count measure already defined in meta, don't generate default
 				return nil
 			}
@@ -67,7 +70,7 @@ func (g *MeasureGenerator) GenerateDefaultCountMeasure(model *models.DbtModel) *
 
 	// Default count measure should be minimal - only name and type (matches Python implementation)
 	return &models.LookMLMeasure{
-		Name: measureName,
+		Name: DefaultCountMeasureName,
 		Type: enums.MeasureCount,
 	}
 }
