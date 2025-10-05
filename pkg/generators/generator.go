@@ -82,8 +82,20 @@ func (g *LookMLGenerator) RegisterPlugin(plugin Plugin) {
 	g.plugins = append(g.plugins, plugin)
 }
 
+// LoadManifest passes the raw manifest to plugins for parsing
+// This is the new preferred way to handle semantic models and metrics
+// Plugins parse what they need internally from the manifest
+func (g *LookMLGenerator) LoadManifest(manifest *models.DbtManifest) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnManifestLoaded(manifest)
+		}
+	}
+}
+
 // SetSemanticMeasures sets the semantic measures mapping for generation
 // Fires DataIngestionHook to all interested plugins
+// Deprecated: Use LoadManifest instead
 func (g *LookMLGenerator) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
 	for _, plugin := range g.plugins {
 		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {

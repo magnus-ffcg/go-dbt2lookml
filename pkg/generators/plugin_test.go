@@ -44,6 +44,23 @@ func (p *MockPlugin) Enabled() bool {
 	return p.enabled
 }
 
+func (p *MockPlugin) OnManifestLoaded(manifest *models.DbtManifest) {
+	// Mock implementation: extract semantic measures for testing
+	if manifest != nil && manifest.SemanticModels != nil {
+		measures := make(map[string][]models.DbtSemanticMeasure)
+		for _, sm := range manifest.SemanticModels {
+			if len(sm.Measures) > 0 {
+				modelRef := sm.GetModelRef()
+				measures[modelRef] = sm.Measures
+			}
+		}
+		if len(measures) > 0 {
+			p.semanticMeasuresCalled = true
+			p.storedMeasures = measures
+		}
+	}
+}
+
 func (p *MockPlugin) OnSemanticMeasures(measures map[string][]models.DbtSemanticMeasure) {
 	p.semanticMeasuresCalled = true
 	p.storedMeasures = measures

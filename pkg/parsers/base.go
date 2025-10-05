@@ -39,6 +39,7 @@ import (
 type DbtParser struct {
 	config              *config.Config         // Configuration with CLI arguments
 	rawManifest         map[string]interface{} // Raw manifest data
+	manifest            *models.DbtManifest    // Parsed manifest
 	catalog             *models.DbtCatalog
 	modelParser         *ModelParser
 	catalogParser       *CatalogParser
@@ -79,6 +80,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	parser := &DbtParser{
 		config:      cliArgs.(*config.Config),
 		rawManifest: rawManifest,
+		manifest:    &manifest,
 		catalog:     &catalog,
 	}
 
@@ -177,11 +179,18 @@ func (p *DbtParser) getExcludeModels() []string {
 }
 
 // GetSemanticModelParser returns the semantic model parser
+// Deprecated: Use GetManifest and parse internally in plugins
 func (p *DbtParser) GetSemanticModelParser() *SemanticModelParser {
 	return p.semanticModelParser
 }
 
 // GetMetricParser returns the metric parser
+// Deprecated: Use GetManifest and parse internally in plugins
 func (p *DbtParser) GetMetricParser() *MetricParser {
 	return p.metricParser
+}
+
+// GetManifest returns the parsed manifest
+func (p *DbtParser) GetManifest() *models.DbtManifest {
+	return p.manifest
 }

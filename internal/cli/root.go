@@ -259,7 +259,11 @@ func parseDBTFiles(cfg *config.Config) (*parsers.DbtParser, []*models.DbtModel, 
 	return parser, dbtModels, parseTime, nil
 }
 
+// Deprecated helper functions below - no longer used with new plugin architecture
+// Kept temporarily for reference, will be removed in next cleanup
+
 // loadSemanticMeasures loads and processes semantic models if enabled
+// Deprecated: Plugins now parse manifest internally
 func loadSemanticMeasures(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*models.DbtModel) map[string][]models.DbtSemanticMeasure {
 	if !cfg.UseSemanticModels {
 		return nil
@@ -299,6 +303,7 @@ func loadSemanticMeasures(cfg *config.Config, parser *parsers.DbtParser, dbtMode
 }
 
 // loadRatioMetrics loads and processes ratio metrics if enabled
+// Deprecated: Plugins now parse manifest internally
 func loadRatioMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
 	if !cfg.UseSemanticModels {
 		return nil
@@ -328,6 +333,7 @@ func loadRatioMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.Db
 }
 
 // loadDerivedMetrics loads and processes derived metrics if enabled
+// Deprecated: Plugins now parse manifest internally
 func loadDerivedMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
 	if !cfg.UseSemanticModels {
 		return nil
@@ -357,6 +363,7 @@ func loadDerivedMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.
 }
 
 // loadSimpleMetrics loads and processes simple metrics with filters if enabled
+// Deprecated: Plugins now parse manifest internally
 func loadSimpleMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
 	if !cfg.UseSemanticModels {
 		return nil
@@ -454,36 +461,13 @@ func generateLookML(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*
 	if cfg.UseSemanticModels {
 		metricsPlugin := pluginMetrics.NewMetricsPlugin(cfg)
 		generator.RegisterPlugin(metricsPlugin)
-	}
-
-	// Load and set semantic measures if enabled
-	if measureMap := loadSemanticMeasures(cfg, parser, dbtModels); measureMap != nil {
-		generator.SetSemanticMeasures(measureMap)
-	}
-
-	// Load and set ratio metrics if enabled
-	if ratioMetrics := loadRatioMetrics(cfg, parser); ratioMetrics != nil {
-		generator.SetRatioMetrics(ratioMetrics)
-	}
-
-	// Load and set derived metrics if enabled
-	if derivedMetrics := loadDerivedMetrics(cfg, parser); derivedMetrics != nil {
-		generator.SetDerivedMetrics(derivedMetrics)
-	}
-
-	// Load and set simple metrics with filters if enabled
-	if simpleMetrics := loadSimpleMetrics(cfg, parser); simpleMetrics != nil {
-		generator.SetSimpleMetrics(simpleMetrics)
-	}
-
-	// Load and set cumulative metrics if enabled
-	if cumulativeMetrics := loadCumulativeMetrics(cfg, parser); cumulativeMetrics != nil {
-		generator.SetCumulativeMetrics(cumulativeMetrics)
-	}
-
-	// Load and set conversion metrics if enabled
-	if conversionMetrics := loadConversionMetrics(cfg, parser); conversionMetrics != nil {
-		generator.SetConversionMetrics(conversionMetrics)
+		
+		// Pass manifest to plugin for parsing
+		// Plugin will parse semantic models and metrics internally
+		manifest := parser.GetManifest()
+		generator.LoadManifest(manifest)
+		
+		log.Info().Msg("Semantic measures and metrics will be parsed by plugin")
 	}
 
 	// Configure error handling strategy

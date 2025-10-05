@@ -20,10 +20,17 @@ type Plugin interface {
 type DataIngestionHook interface {
 	Plugin
 
-	// OnSemanticMeasures is called when semantic measures are loaded
+	// OnManifestLoaded is called when the raw manifest is loaded
+	// Plugins parse what they need from the manifest internally
+	// This is the new preferred method for data ingestion
+	OnManifestLoaded(manifest *models.DbtManifest)
+
+	// OnSemanticMeasures is called when semantic measures are loaded (legacy)
+	// Deprecated: Use OnManifestLoaded instead
 	OnSemanticMeasures(measures map[string][]models.DbtSemanticMeasure)
 
-	// OnMetrics is called when metrics are loaded (by type)
+	// OnMetrics is called when metrics are loaded by type (legacy)
+	// Deprecated: Use OnManifestLoaded instead
 	OnMetrics(metrics []models.DbtMetric, metricType string)
 }
 

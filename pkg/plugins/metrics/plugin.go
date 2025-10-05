@@ -20,7 +20,10 @@ const (
 type MetricsPlugin struct {
 	config *config.Config
 
-	// Metric data
+	// Internal parser for semantic models and metrics
+	parser *parser
+
+	// Parsed metric data (populated by OnManifestLoaded)
 	semanticMeasures  map[string][]models.DbtSemanticMeasure // model name -> semantic measures
 	ratioMetrics      []models.DbtMetric                     // global ratio metrics
 	derivedMetrics    []models.DbtMetric                     // global derived metrics
@@ -56,27 +59,61 @@ func (p *MetricsPlugin) Name() string {
 	return "SemanticMetrics"
 }
 
+// ============================================================================
+// DataIngestionHook Implementation
+// ============================================================================
+
+// OnManifestLoaded is called when the manifest is loaded
+// The plugin parses semantic models and metrics internally from the raw manifest
+func (p *MetricsPlugin) OnManifestLoaded(manifest *models.DbtManifest) {
+	if !p.Enabled() {
+		return
+	}
+
+	// Create parser from manifest
+	p.parser = newParser(manifest)
+
+	// Parse semantic measures
+	p.semanticMeasures = p.parser.parseSemanticMeasures()
+
+	// Parse all metric types
+	p.ratioMetrics = p.parser.parseRatioMetrics()
+	p.derivedMetrics = p.parser.parseDerivedMetrics()
+	p.simpleMetrics = p.parser.parseSimpleMetrics()
+	p.cumulativeMetrics = p.parser.parseCumulativeMetrics()
+	p.conversionMetrics = p.parser.parseConversionMetrics()
+}
+
+// ============================================================================
+// Legacy Methods (for backward compatibility - will be removed)
+// ============================================================================
+
 // SetSemanticMeasures sets the semantic measures mapping
+// Deprecated: Use OnManifestLoaded instead
 func (p *MetricsPlugin) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
 	p.semanticMeasures = semanticMeasures
 }
 
 // SetRatioMetrics sets the ratio metrics
+// Deprecated: Use OnManifestLoaded instead
 func (p *MetricsPlugin) SetRatioMetrics(ratioMetrics []models.DbtMetric) {
 	p.ratioMetrics = ratioMetrics
 }
 
 // SetDerivedMetrics sets the derived metrics
+// Deprecated: Use OnManifestLoaded instead
 func (p *MetricsPlugin) SetDerivedMetrics(derivedMetrics []models.DbtMetric) {
 	p.derivedMetrics = derivedMetrics
 }
 
 // SetSimpleMetrics sets the simple metrics
+// Deprecated: Use OnManifestLoaded instead
 func (p *MetricsPlugin) SetSimpleMetrics(simpleMetrics []models.DbtMetric) {
 	p.simpleMetrics = simpleMetrics
 }
 
 // SetCumulativeMetrics sets the cumulative metrics
+// Deprecated: Use OnManifestLoaded instead
 func (p *MetricsPlugin) SetCumulativeMetrics(cumulativeMetrics []models.DbtMetric) {
 	p.cumulativeMetrics = cumulativeMetrics
 }
@@ -282,12 +319,14 @@ func (p *MetricsPlugin) GetConversionMetrics() []models.DbtMetric {
 
 // ========== Hook Interface Implementations ==========
 
-// OnSemanticMeasures implements DataIngestionHook
+// OnSemanticMeasures implements DataIngestionHook (legacy)
+// Deprecated: This is kept for backward compatibility. Use OnManifestLoaded instead
 func (p *MetricsPlugin) OnSemanticMeasures(measures map[string][]models.DbtSemanticMeasure) {
 	p.semanticMeasures = measures
 }
 
-// OnMetrics implements DataIngestionHook
+// OnMetrics implements DataIngestionHook (legacy)
+// Deprecated: This is kept for backward compatibility. Use OnManifestLoaded instead
 func (p *MetricsPlugin) OnMetrics(metrics []models.DbtMetric, metricType string) {
 	switch metricType {
 	case "ratio":
