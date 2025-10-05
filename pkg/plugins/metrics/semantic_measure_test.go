@@ -1,4 +1,4 @@
-package generators
+package metrics
 
 import (
 	"testing"
@@ -326,12 +326,13 @@ func TestGenerateMeasuresFromSemantic(t *testing.T) {
 			expectedCount: 3,
 		},
 		{
-			name: "skip measure with create_metric false",
+			name: "generate all measures regardless of create_metric flag",
 			measures: []models.DbtSemanticMeasure{
 				{Name: "total_revenue", Agg: "sum", Expr: utils.StringPtr("amount")},
 				{Name: "internal_metric", Agg: "count", CreateMetric: utils.BoolPtr(false)},
 			},
-			expectedCount: 1,
+			// We generate LookML measures for ALL semantic measures (create_metric is for dbt metrics)
+			expectedCount: 2,
 		},
 		{
 			name:          "empty measures",

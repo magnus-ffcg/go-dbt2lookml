@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **dbt Metrics Support (100% type coverage)**
+  - **Simple metrics with filters**: Convert dbt filter syntax to CASE WHEN expressions
+  - **Ratio metrics**: Division-based metrics with NULLIF protection
+  - **Derived metrics**: Expression-based metrics with dependency resolution (topological sort)
+  - **Cumulative metrics**: Window functions in derived tables (rolling windows, grain-to-date, lifetime)
+  - **Conversion metrics**: Scaffolding with parser, detection, and placeholder measures (full SQL TODO)
+  - Support for all aggregation types (sum, count, avg, count_distinct, min, max, etc.)
+
+- **View Extension Architecture**
+  - All dbt semantic layer content now in view extensions (`view: +name`)
+  - Base views contain only catalog structure + default count measure
+  - Extension files contain all semantic measures and metrics
+  - Non-destructive pattern: extensions build on base views
+  - Format: `{model}__metrics.view.lkml` for extensions
+
+- **Derived Table Generation**
+  - Automatic derived table creation for cumulative metrics
+  - SQL window functions with proper OVER clauses
+  - Three window types: rolling, grain-to-date, unbounded
+  - Efficient: all cumulative metrics in one derived table per model
+
+- **Metric Generators**
+  - Created `pkg/generators/metrics/` sub-package
+  - `MetricMeasureGenerator`: Unified orchestrator for all metric types
+  - `MeasureUtils`: Common utilities to eliminate code duplication
+  - Builder pattern for individual metric type generators
+  - `CumulativeMetricGenerator`: Window function SQL generation
+
+- **Parser Enhancements**
+  - `GetRatioMetrics()`: Parse ratio metrics from manifest
+  - `GetDerivedMetrics()`: Parse derived metrics with expressions
+  - `GetSimpleMetricsWithFilters()`: Parse filtered simple metrics
+  - `GetCumulativeMetrics()`: Parse cumulative metrics with window params
+  - Support for `DbtMetricWindow` (count + granularity)
+
+- **LookML Generation**
+  - Measure references: Convert metric names to `${measure_name}` syntax
+  - Filter conversion: `{{ Dimension('x') }}` → `${TABLE}.x`
+  - Topological sort for metric dependencies
+  - Circular dependency detection
+
 ### Changed
 
 - **Documentation organization**

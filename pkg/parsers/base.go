@@ -44,6 +44,7 @@ type DbtParser struct {
 	catalogParser       *CatalogParser
 	exposureParser      *ExposureParser
 	semanticModelParser *SemanticModelParser
+	metricParser        *MetricParser
 }
 
 // NewDbtParser creates a new DbtParser instance
@@ -86,6 +87,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	parser.catalogParser = NewCatalogParser(&catalog, rawCatalog, parser.config)
 	parser.exposureParser = NewExposureParser(&manifest)
 	parser.semanticModelParser = NewSemanticModelParser(&manifest)
+	parser.metricParser = NewMetricParser(&manifest)
 
 	return parser, nil
 }
@@ -177,4 +179,9 @@ func (p *DbtParser) getExcludeModels() []string {
 // GetSemanticModelParser returns the semantic model parser
 func (p *DbtParser) GetSemanticModelParser() *SemanticModelParser {
 	return p.semanticModelParser
+}
+
+// GetMetricParser returns the metric parser
+func (p *DbtParser) GetMetricParser() *MetricParser {
+	return p.metricParser
 }

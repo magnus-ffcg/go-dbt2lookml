@@ -286,11 +286,160 @@ func loadSemanticMeasures(cfg *config.Config, parser *parsers.DbtParser, dbtMode
 		}
 		if len(allMeasures) > 0 {
 			measureMap[modelName] = allMeasures
+			log.Debug().
+				Str("model", modelName).
+				Int("measures", len(allMeasures)).
+				Msg("Added semantic measures for model")
 		}
 	}
 
 	log.Info().Int("models_with_semantic_measures", len(measureMap)).Msg("Loaded semantic models")
 	return measureMap
+}
+
+// loadRatioMetrics loads and processes ratio metrics if enabled
+func loadRatioMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing ratio metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	ratioMetrics, err := metricParser.GetRatioMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get ratio metrics")
+		return nil
+	}
+
+	if len(ratioMetrics) == 0 {
+		log.Debug().Msg("No ratio metrics found")
+		return nil
+	}
+
+	log.Info().Int("ratio_metrics_count", len(ratioMetrics)).Msg("Loaded ratio metrics")
+	return ratioMetrics
+}
+
+// loadDerivedMetrics loads and processes derived metrics if enabled
+func loadDerivedMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing derived metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	derivedMetrics, err := metricParser.GetDerivedMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get derived metrics")
+		return nil
+	}
+
+	if len(derivedMetrics) == 0 {
+		log.Debug().Msg("No derived metrics found")
+		return nil
+	}
+
+	log.Info().Int("derived_metrics_count", len(derivedMetrics)).Msg("Loaded derived metrics")
+	return derivedMetrics
+}
+
+// loadSimpleMetrics loads and processes simple metrics with filters if enabled
+func loadSimpleMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing simple metrics with filters")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	simpleMetrics, err := metricParser.GetSimpleMetricsWithFilters()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get simple metrics")
+		return nil
+	}
+
+	if len(simpleMetrics) == 0 {
+		log.Debug().Msg("No simple metrics with filters found")
+		return nil
+	}
+
+	log.Info().Int("simple_metrics_count", len(simpleMetrics)).Msg("Loaded simple metrics with filters")
+	return simpleMetrics
+}
+
+// loadCumulativeMetrics loads and processes cumulative metrics if enabled
+func loadCumulativeMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing cumulative metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	cumulativeMetrics, err := metricParser.GetCumulativeMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get cumulative metrics")
+		return nil
+	}
+
+	if len(cumulativeMetrics) == 0 {
+		log.Debug().Msg("No cumulative metrics found")
+		return nil
+	}
+
+	log.Info().Int("cumulative_metrics_count", len(cumulativeMetrics)).Msg("Loaded cumulative metrics")
+	return cumulativeMetrics
+}
+
+// loadConversionMetrics loads and processes conversion metrics if enabled
+func loadConversionMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing conversion metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	conversionMetrics, err := metricParser.GetConversionMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get conversion metrics")
+		return nil
+	}
+
+	if len(conversionMetrics) == 0 {
+		log.Debug().Msg("No conversion metrics found")
+		return nil
+	}
+
+	log.Info().Int("conversion_metrics_count", len(conversionMetrics)).Msg("Loaded conversion metrics")
+	return conversionMetrics
 }
 
 // generateLookML generates LookML files from dbt models
@@ -303,6 +452,31 @@ func generateLookML(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*
 	// Load and set semantic measures if enabled
 	if measureMap := loadSemanticMeasures(cfg, parser, dbtModels); measureMap != nil {
 		generator.SetSemanticMeasures(measureMap)
+	}
+
+	// Load and set ratio metrics if enabled
+	if ratioMetrics := loadRatioMetrics(cfg, parser); ratioMetrics != nil {
+		generator.SetRatioMetrics(ratioMetrics)
+	}
+
+	// Load and set derived metrics if enabled
+	if derivedMetrics := loadDerivedMetrics(cfg, parser); derivedMetrics != nil {
+		generator.SetDerivedMetrics(derivedMetrics)
+	}
+
+	// Load and set simple metrics with filters if enabled
+	if simpleMetrics := loadSimpleMetrics(cfg, parser); simpleMetrics != nil {
+		generator.SetSimpleMetrics(simpleMetrics)
+	}
+
+	// Load and set cumulative metrics if enabled
+	if cumulativeMetrics := loadCumulativeMetrics(cfg, parser); cumulativeMetrics != nil {
+		generator.SetCumulativeMetrics(cumulativeMetrics)
+	}
+
+	// Load and set conversion metrics if enabled
+	if conversionMetrics := loadConversionMetrics(cfg, parser); conversionMetrics != nil {
+		generator.SetConversionMetrics(conversionMetrics)
 	}
 
 	// Configure error handling strategy

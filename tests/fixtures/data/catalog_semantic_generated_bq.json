@@ -1,0 +1,14 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/catalog/v1.json",
+    "dbt_version": "1.10.13",
+    "generated_at": "2025-10-03T21:08:59.640745Z",
+    "invocation_id": "3db0c24f-ec15-4a9b-ad60-a3064c66d634",
+    "invocation_started_at": "2025-10-03T21:08:58.800529Z",
+    "env": {},
+    "adapter_type": "bigquery"
+  },
+  "nodes": {},
+  "sources": {},
+  "errors": null
+}

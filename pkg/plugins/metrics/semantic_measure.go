@@ -1,4 +1,4 @@
-package generators
+package metrics
 
 import (
 	"fmt"
@@ -72,13 +72,8 @@ func (g *SemanticMeasureGenerator) GenerateMeasuresFromSemantic(
 	measures := make([]*models.LookMLMeasure, 0, len(semanticMeasures))
 
 	for i := range semanticMeasures {
-		// Only generate if create_metric is true (or not specified)
-		if !semanticMeasures[i].ShouldCreateMetric() {
-			g.config.Logger().Debug().
-				Str("measure", semanticMeasures[i].Name).
-				Msg("Skipping measure (create_metric: false)")
-			continue
-		}
+		// Note: create_metric flag is for dbt metrics, not LookML generation
+		// We generate LookML measures for all semantic measures
 
 		measure, err := g.GenerateMeasureFromSemantic(&semanticMeasures[i], model)
 		if err != nil {

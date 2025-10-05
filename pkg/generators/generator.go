@@ -36,6 +36,7 @@ import (
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	pluginMetrics "github.com/magnus-ffcg/go-dbt2lookml/pkg/plugins/metrics"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
@@ -57,24 +58,69 @@ type LookMLGenerator struct {
 	viewGenerator      *ViewGenerator
 	exploreGenerator   *ExploreGenerator
 	measureGenerator   *MeasureGenerator
-	semanticMeasures   map[string][]models.DbtSemanticMeasure // model name -> semantic measures
+
+	// Plugin for semantic models/metrics (optional)
+	metricsPlugin *pluginMetrics.MetricsPlugin
 }
 
 // NewLookMLGenerator creates a new LookMLGenerator instance
 func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
-	return &LookMLGenerator{
+	gen := &LookMLGenerator{
 		config:             cfg,
 		dimensionGenerator: NewDimensionGenerator(cfg),
 		viewGenerator:      NewViewGenerator(cfg),
 		exploreGenerator:   NewExploreGenerator(cfg),
 		measureGenerator:   NewMeasureGenerator(cfg),
-		semanticMeasures:   make(map[string][]models.DbtSemanticMeasure),
 	}
+
+	// Initialize metrics plugin if semantic models enabled
+	if cfg.UseSemanticModels {
+		gen.metricsPlugin = pluginMetrics.NewMetricsPlugin(cfg)
+	}
+
+	return gen
 }
 
 // SetSemanticMeasures sets the semantic measures mapping for generation
 func (g *LookMLGenerator) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
-	g.semanticMeasures = semanticMeasures
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetSemanticMeasures(semanticMeasures)
+	}
+}
+
+// SetRatioMetrics sets the ratio metrics for generation
+func (g *LookMLGenerator) SetRatioMetrics(ratioMetrics []models.DbtMetric) {
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetRatioMetrics(ratioMetrics)
+	}
+}
+
+// SetDerivedMetrics sets the derived metrics for generation
+func (g *LookMLGenerator) SetDerivedMetrics(derivedMetrics []models.DbtMetric) {
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetDerivedMetrics(derivedMetrics)
+	}
+}
+
+// SetSimpleMetrics sets the simple metrics for generation
+func (g *LookMLGenerator) SetSimpleMetrics(simpleMetrics []models.DbtMetric) {
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetSimpleMetrics(simpleMetrics)
+	}
+}
+
+// SetCumulativeMetrics sets the cumulative metrics for generation
+func (g *LookMLGenerator) SetCumulativeMetrics(cumulativeMetrics []models.DbtMetric) {
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetCumulativeMetrics(cumulativeMetrics)
+	}
+}
+
+// SetConversionMetrics sets the conversion metrics for generation
+func (g *LookMLGenerator) SetConversionMetrics(conversionMetrics []models.DbtMetric) {
+	if g.metricsPlugin != nil {
+		g.metricsPlugin.SetConversionMetrics(conversionMetrics)
+	}
 }
 
 // GenerateAll generates all LookML files for the given models.
@@ -203,18 +249,13 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 }
 
 // generateViewFile generates a LookML view file for a model (includes explore and nested views)
+// Base view contains ONLY catalog-based dimensions and a default count measure
 func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	var fullContent strings.Builder
 
-	// 1. Generate main view first (with semantic measures if available)
-	var view *models.LookMLView
-	var err error
-
-	if semanticMeasures, exists := g.semanticMeasures[model.Name]; exists && len(semanticMeasures) > 0 {
-		view, err = g.viewGenerator.GenerateViewWithSemanticMeasures(model, semanticMeasures)
-	} else {
-		view, err = g.viewGenerator.GenerateView(model)
-	}
+	// 1. Generate BASE view from catalog only (no dbt semantic measures)
+	// All dbt semantic layer content goes into view extension
+	view, err := g.viewGenerator.GenerateView(model)
 
 	if err != nil {
 		return fmt.Errorf("failed to generate view: %w", err)
@@ -236,6 +277,14 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	explore, err := g.exploreGenerator.GenerateExplore(model)
 	if err != nil {
 		return fmt.Errorf("failed to generate explore: %w", err)
+	}
+
+	// 3b. Add metric joins from plugin if enabled
+	if g.metricsPlugin != nil {
+		// Use the explore name as base for metric views
+		baseName := explore.Name
+		metricJoins := g.metricsPlugin.GetExploreJoins(model, baseName)
+		explore.Joins = append(explore.Joins, metricJoins...)
 	}
 
 	exploreContent, err := g.exploreToLookML(explore)
@@ -260,6 +309,17 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	}
 
 	g.config.Logger().Debug().Str("file", filePath).Msg("Generated view file")
+
+	// 4. Plugin handles all semantic layer content (view extension + cumulative + conversion)
+	if g.metricsPlugin != nil {
+		if err := g.metricsPlugin.GenerateForModel(model); err != nil {
+			g.config.Logger().Warn().
+				Err(err).
+				Str("model", model.Name).
+				Msg("Failed to generate metrics plugin views")
+		}
+	}
+
 	return nil
 }
 

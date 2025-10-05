@@ -27,13 +27,24 @@ func NewExploreGenerator(cfg *config.Config) *ExploreGenerator {
 
 // GenerateExplore generates a LookML explore from a dbt model
 func (g *ExploreGenerator) GenerateExplore(model *models.DbtModel) (*models.LookMLExplore, error) {
+	return g.GenerateExploreWithMetrics(model, false, false)
+}
+
+// GenerateExploreWithMetrics generates a LookML explore with optional metric view joins
+func (g *ExploreGenerator) GenerateExploreWithMetrics(model *models.DbtModel, hasCumulativeMetrics bool, hasConversionMetrics bool) (*models.LookMLExplore, error) {
+	joins := g.getExploreJoins(model)
+
+	// Add joins for cumulative and conversion metric views
+	metricJoins := g.generateMetricViewJoins(model, hasCumulativeMetrics, hasConversionMetrics)
+	joins = append(joins, metricJoins...)
+
 	explore := &models.LookMLExplore{
 		Name:        g.getExploreName(model),
 		ViewName:    g.getExploreViewName(model),
 		Label:       g.getExploreLabel(model),
 		Description: g.getExploreDescription(model),
 		Hidden:      g.getExploreHidden(model),
-		Joins:       g.getExploreJoins(model),
+		Joins:       joins,
 	}
 
 	return explore, nil
@@ -209,6 +220,55 @@ func (g *ExploreGenerator) getNestedViewLabel(model *models.DbtModel, arrayColum
 	arrayLabel := utils.ToTitleCase(strings.ReplaceAll(strings.ReplaceAll(arrayColumnName, ".", " "), "_", " "))
 
 	return fmt.Sprintf("%s: %s", modelLabel, arrayLabel)
+}
+
+// generateMetricViewJoins generates joins for cumulative and conversion metric views
+func (g *ExploreGenerator) generateMetricViewJoins(model *models.DbtModel, hasCumulativeMetrics bool, hasConversionMetrics bool) []models.LookMLJoin {
+	var joins []models.LookMLJoin
+
+	baseName := g.getExploreName(model)
+
+	// Add join for cumulative metrics view
+	if hasCumulativeMetrics {
+		cumulativeViewName := fmt.Sprintf("%s__cumulative", baseName)
+		relationship := enums.LookerRelationshipType("one_to_one")
+		joinType := enums.JoinLeftOuter
+
+		// TODO: Detect primary key from semantic model instead of hardcoding
+		sqlOn := fmt.Sprintf("${%s.order_id} = ${%s.order_id}", baseName, cumulativeViewName)
+
+		label := "Cumulative Metrics"
+
+		joins = append(joins, models.LookMLJoin{
+			Name:         cumulativeViewName,
+			ViewLabel:    &label,
+			SQL:          &sqlOn,
+			Type:         &joinType,
+			Relationship: &relationship,
+		})
+	}
+
+	// Add join for conversion metrics view
+	if hasConversionMetrics {
+		conversionViewName := fmt.Sprintf("%s__conversion", baseName)
+		relationship := enums.LookerRelationshipType("one_to_one")
+		joinType := enums.JoinLeftOuter
+
+		// TODO: Detect entity key from semantic model instead of hardcoding
+		sqlOn := fmt.Sprintf("${%s.customer_id} = ${%s.customer_id}", baseName, conversionViewName)
+
+		label := "Conversion Metrics"
+
+		joins = append(joins, models.LookMLJoin{
+			Name:         conversionViewName,
+			ViewLabel:    &label,
+			SQL:          &sqlOn,
+			Type:         &joinType,
+			Relationship: &relationship,
+		})
+	}
+
+	return joins
 }
 
 // getNestedViewJoinSQL generates the SQL for joining a nested view

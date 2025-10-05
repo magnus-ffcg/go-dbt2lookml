@@ -6,6 +6,7 @@ import (
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
+	pluginMetrics "github.com/magnus-ffcg/go-dbt2lookml/pkg/plugins/metrics"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
@@ -17,7 +18,7 @@ type ViewGenerator struct {
 	config                   *config.Config
 	dimensionGenerator       *DimensionGenerator
 	measureGenerator         *MeasureGenerator
-	semanticMeasureGenerator *SemanticMeasureGenerator
+	semanticMeasureGenerator *pluginMetrics.SemanticMeasureGenerator
 }
 
 // NewViewGenerator creates a new ViewGenerator instance
@@ -26,7 +27,7 @@ func NewViewGenerator(cfg *config.Config) *ViewGenerator {
 		config:                   cfg,
 		dimensionGenerator:       NewDimensionGenerator(cfg),
 		measureGenerator:         NewMeasureGenerator(cfg),
-		semanticMeasureGenerator: NewSemanticMeasureGenerator(cfg),
+		semanticMeasureGenerator: pluginMetrics.NewSemanticMeasureGenerator(cfg),
 	}
 }
 

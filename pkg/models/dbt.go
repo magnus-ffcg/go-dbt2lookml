@@ -276,4 +276,5 @@ type DbtManifest struct {
 	Metadata       DbtManifestMetadata         `json:"metadata" yaml:"metadata"`
 	Exposures      map[string]DbtExposure      `json:"exposures" yaml:"exposures"`
 	SemanticModels map[string]DbtSemanticModel `json:"semantic_models,omitempty" yaml:"semantic_models,omitempty"`
+	Metrics        map[string]DbtMetric        `json:"metrics,omitempty" yaml:"metrics,omitempty"`
 }
