@@ -9,6 +9,17 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 )
 
+// Measure type constants
+const (
+	measureTypeAverage       = "average"
+	measureTypeSum           = "sum"
+	measureTypeCount         = "count"
+	measureTypeMin           = "min"
+	measureTypeMax           = "max"
+	measureTypeCountDistinct = "count_distinct"
+	measureTypeSumBoolean    = "sum_boolean"
+)
+
 // GenerateForModel generates all metric-related files for a model
 // This includes view extensions, cumulative views, and conversion views
 func (p *MetricsPlugin) GenerateForModel(model *models.DbtModel) error {
@@ -427,9 +438,9 @@ func (p *MetricsPlugin) generateConversionViewFile(
 			comma = ""
 		}
 
-		viewContent.WriteString(fmt.Sprintf("        CASE\n"))
+		viewContent.WriteString("        CASE\n")
 		viewContent.WriteString(fmt.Sprintf("          WHEN c%d.conversion_time <= DATE_ADD(b.base_time, %s)\n", i, windowInterval))
-		viewContent.WriteString(fmt.Sprintf("          THEN 1 ELSE 0\n"))
+		viewContent.WriteString("          THEN 1 ELSE 0\n")
 		viewContent.WriteString(fmt.Sprintf("        END as %s%s\n", metric.Name, comma))
 	}
 
@@ -458,11 +469,11 @@ func (p *MetricsPlugin) generateConversionViewFile(
 		viewContent.WriteString(fmt.Sprintf("  measure: %s {\n", metric.Name))
 
 		// Determine measure type based on calculation
-		measureType := "average" // Default for conversion_rate
+		measureType := measureTypeAverage // Default for conversion_rate
 		if params.Calculation != nil {
 			calc := *params.Calculation
 			if calc == "conversions" || calc == "converted_entity_count" {
-				measureType = "sum"
+				measureType = measureTypeSum
 			}
 		}
 
@@ -478,7 +489,7 @@ func (p *MetricsPlugin) generateConversionViewFile(
 		}
 
 		// Add value format for rates
-		if measureType == "average" {
+		if measureType == measureTypeAverage {
 			viewContent.WriteString("    value_format_name: percent_1\n")
 		}
 

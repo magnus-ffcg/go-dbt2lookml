@@ -36,7 +36,6 @@ import (
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
-	pluginMetrics "github.com/magnus-ffcg/go-dbt2lookml/pkg/plugins/metrics"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/utils"
 )
 
@@ -59,8 +58,8 @@ type LookMLGenerator struct {
 	exploreGenerator   *ExploreGenerator
 	measureGenerator   *MeasureGenerator
 
-	// Plugin for semantic models/metrics (optional)
-	metricsPlugin *pluginMetrics.MetricsPlugin
+	// Plugins - hook-based extensibility
+	plugins []Plugin
 }
 
 // NewLookMLGenerator creates a new LookMLGenerator instance
@@ -71,55 +70,70 @@ func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
 		viewGenerator:      NewViewGenerator(cfg),
 		exploreGenerator:   NewExploreGenerator(cfg),
 		measureGenerator:   NewMeasureGenerator(cfg),
-	}
-
-	// Initialize metrics plugin if semantic models enabled
-	if cfg.UseSemanticModels {
-		gen.metricsPlugin = pluginMetrics.NewMetricsPlugin(cfg)
+		plugins:            make([]Plugin, 0),
 	}
 
 	return gen
 }
 
+// RegisterPlugin registers a plugin with the generator
+// Plugins receive hooks during generation lifecycle
+func (g *LookMLGenerator) RegisterPlugin(plugin Plugin) {
+	g.plugins = append(g.plugins, plugin)
+}
+
 // SetSemanticMeasures sets the semantic measures mapping for generation
+// Fires DataIngestionHook to all interested plugins
 func (g *LookMLGenerator) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetSemanticMeasures(semanticMeasures)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnSemanticMeasures(semanticMeasures)
+		}
 	}
 }
 
 // SetRatioMetrics sets the ratio metrics for generation
 func (g *LookMLGenerator) SetRatioMetrics(ratioMetrics []models.DbtMetric) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetRatioMetrics(ratioMetrics)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(ratioMetrics, "ratio")
+		}
 	}
 }
 
 // SetDerivedMetrics sets the derived metrics for generation
 func (g *LookMLGenerator) SetDerivedMetrics(derivedMetrics []models.DbtMetric) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetDerivedMetrics(derivedMetrics)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(derivedMetrics, "derived")
+		}
 	}
 }
 
 // SetSimpleMetrics sets the simple metrics for generation
 func (g *LookMLGenerator) SetSimpleMetrics(simpleMetrics []models.DbtMetric) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetSimpleMetrics(simpleMetrics)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(simpleMetrics, "simple")
+		}
 	}
 }
 
 // SetCumulativeMetrics sets the cumulative metrics for generation
 func (g *LookMLGenerator) SetCumulativeMetrics(cumulativeMetrics []models.DbtMetric) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetCumulativeMetrics(cumulativeMetrics)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(cumulativeMetrics, "cumulative")
+		}
 	}
 }
 
 // SetConversionMetrics sets the conversion metrics for generation
 func (g *LookMLGenerator) SetConversionMetrics(conversionMetrics []models.DbtMetric) {
-	if g.metricsPlugin != nil {
-		g.metricsPlugin.SetConversionMetrics(conversionMetrics)
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(conversionMetrics, "conversion")
+		}
 	}
 }
 
@@ -162,7 +176,7 @@ func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*
 		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file
-		if err := g.generateViewFile(model); err != nil {
+		if err := g.generateViewFile(ctx, model); err != nil {
 			modelErr := ModelError{
 				ModelName: model.Name,
 				Error:     err,
@@ -225,7 +239,7 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file (includes explore and nested views inline)
-		if err := g.generateViewFile(model); err != nil {
+		if err := g.generateViewFile(ctx, model); err != nil {
 			if g.config.ContinueOnError {
 				errorMsg := fmt.Sprintf("failed to generate view for model %s: %v", model.Name, err)
 				g.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to generate view")
@@ -250,7 +264,7 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 
 // generateViewFile generates a LookML view file for a model (includes explore and nested views)
 // Base view contains ONLY catalog-based dimensions and a default count measure
-func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
+func (g *LookMLGenerator) generateViewFile(ctx context.Context, model *models.DbtModel) error {
 	var fullContent strings.Builder
 
 	// 1. Generate BASE view from catalog only (no dbt semantic measures)
@@ -279,12 +293,16 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 		return fmt.Errorf("failed to generate explore: %w", err)
 	}
 
-	// 3b. Add metric joins from plugin if enabled
-	if g.metricsPlugin != nil {
-		// Use the explore name as base for metric views
-		baseName := explore.Name
-		metricJoins := g.metricsPlugin.GetExploreJoins(model, baseName)
-		explore.Joins = append(explore.Joins, metricJoins...)
+	// 3b. Fire ExploreEnrichmentHook to allow plugins to add joins
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(ExploreEnrichmentHook); ok && hook.Enabled() {
+			if err := hook.EnrichExplore(ctx, model, explore, explore.Name); err != nil {
+				g.config.Logger().Warn().
+					Err(err).
+					Str("plugin", plugin.Name()).
+					Msg("Plugin explore enrichment failed")
+			}
+		}
 	}
 
 	exploreContent, err := g.exploreToLookML(explore)
@@ -310,13 +328,16 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 
 	g.config.Logger().Debug().Str("file", filePath).Msg("Generated view file")
 
-	// 4. Plugin handles all semantic layer content (view extension + cumulative + conversion)
-	if g.metricsPlugin != nil {
-		if err := g.metricsPlugin.GenerateForModel(model); err != nil {
-			g.config.Logger().Warn().
-				Err(err).
-				Str("model", model.Name).
-				Msg("Failed to generate metrics plugin views")
+	// 4. Fire AfterModelGeneration hook for plugins to generate additional files
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(ModelGenerationHook); ok && hook.Enabled() {
+			if err := hook.AfterModelGeneration(ctx, model); err != nil {
+				g.config.Logger().Warn().
+					Err(err).
+					Str("plugin", plugin.Name()).
+					Str("model", model.Name).
+					Msg("Plugin after-generation hook failed")
+			}
 		}
 	}
 

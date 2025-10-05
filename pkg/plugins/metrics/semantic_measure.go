@@ -93,17 +93,17 @@ func (g *SemanticMeasureGenerator) GenerateMeasuresFromSemantic(
 // mapAggregationType maps dbt semantic model aggregation type to LookML measure type
 func (g *SemanticMeasureGenerator) mapAggregationType(agg string) (enums.LookerMeasureType, error) {
 	switch strings.ToLower(agg) {
-	case "sum":
+	case measureTypeSum:
 		return enums.MeasureSum, nil
-	case "average", "avg":
+	case measureTypeAverage, "avg":
 		return enums.MeasureAverage, nil
-	case "min":
+	case measureTypeMin:
 		return enums.MeasureMin, nil
-	case "max":
+	case measureTypeMax:
 		return enums.MeasureMax, nil
-	case "count":
+	case measureTypeCount:
 		return enums.MeasureCount, nil
-	case "count_distinct":
+	case measureTypeCountDistinct:
 		return enums.MeasureCountDistinct, nil
 	case "median":
 		return enums.MeasureMedian, nil
@@ -111,7 +111,7 @@ func (g *SemanticMeasureGenerator) mapAggregationType(agg string) (enums.LookerM
 		// Percentile measures in LookML use the type "percentile_XX" where XX is the percentile value
 		// For now, we'll use "number" and handle the percentile value separately
 		return enums.MeasureNumber, nil
-	case "sum_boolean":
+	case measureTypeSumBoolean:
 		// sum_boolean in dbt is essentially a SUM of boolean values (cast to int)
 		// In LookML, this is just a sum measure with appropriate SQL
 		return enums.MeasureSum, nil
@@ -142,7 +142,7 @@ func (g *SemanticMeasureGenerator) getMeasureSQL(
 	model *models.DbtModel,
 ) *string {
 	// Count measures typically don't need SQL
-	if measure.Agg == "count" {
+	if measure.Agg == measureTypeCount {
 		return nil
 	}
 

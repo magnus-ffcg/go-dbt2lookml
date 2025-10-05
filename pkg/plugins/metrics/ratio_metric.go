@@ -95,7 +95,7 @@ func (g *RatioMetricGenerator) buildAggregationSQL(measure *models.DbtSemanticMe
 	agg := measure.Agg
 
 	// For count, no column needed
-	if agg == "count" {
+	if agg == measureTypeCount {
 		return "COUNT(*)"
 	}
 
@@ -109,19 +109,19 @@ func (g *RatioMetricGenerator) buildAggregationSQL(measure *models.DbtSemanticMe
 
 	// Build aggregation based on type
 	switch agg {
-	case "sum":
+	case measureTypeSum:
 		return fmt.Sprintf("SUM(${TABLE}.%s)", expr)
-	case "average", "avg":
+	case measureTypeAverage, "avg":
 		return fmt.Sprintf("AVG(${TABLE}.%s)", expr)
-	case "min":
+	case measureTypeMin:
 		return fmt.Sprintf("MIN(${TABLE}.%s)", expr)
-	case "max":
+	case measureTypeMax:
 		return fmt.Sprintf("MAX(${TABLE}.%s)", expr)
-	case "count_distinct":
+	case measureTypeCountDistinct:
 		return fmt.Sprintf("COUNT(DISTINCT ${TABLE}.%s)", expr)
 	case "median":
 		return fmt.Sprintf("PERCENTILE_CONT(${TABLE}.%s, 0.5)", expr)
-	case "sum_boolean":
+	case measureTypeSumBoolean:
 		return fmt.Sprintf("SUM(CAST(${TABLE}.%s AS INT64))", expr)
 	default:
 		// Fallback: just use the aggregation function

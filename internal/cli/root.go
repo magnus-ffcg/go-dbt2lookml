@@ -13,6 +13,7 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/generators"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/parsers"
+	pluginMetrics "github.com/magnus-ffcg/go-dbt2lookml/pkg/plugins/metrics"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -448,6 +449,12 @@ func generateLookML(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*
 	generateStart := time.Now()
 
 	generator := generators.NewLookMLGenerator(cfg)
+
+	// Register metrics plugin if semantic models enabled
+	if cfg.UseSemanticModels {
+		metricsPlugin := pluginMetrics.NewMetricsPlugin(cfg)
+		generator.RegisterPlugin(metricsPlugin)
+	}
 
 	// Load and set semantic measures if enabled
 	if measureMap := loadSemanticMeasures(cfg, parser, dbtModels); measureMap != nil {

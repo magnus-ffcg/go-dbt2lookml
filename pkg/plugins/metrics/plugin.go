@@ -2,6 +2,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
@@ -277,4 +278,46 @@ func (p *MetricsPlugin) GetConversionMetrics() []models.DbtMetric {
 		return nil
 	}
 	return p.conversionMetrics
+}
+
+// ========== Hook Interface Implementations ==========
+
+// OnSemanticMeasures implements DataIngestionHook
+func (p *MetricsPlugin) OnSemanticMeasures(measures map[string][]models.DbtSemanticMeasure) {
+	p.semanticMeasures = measures
+}
+
+// OnMetrics implements DataIngestionHook
+func (p *MetricsPlugin) OnMetrics(metrics []models.DbtMetric, metricType string) {
+	switch metricType {
+	case "ratio":
+		p.ratioMetrics = metrics
+	case "derived":
+		p.derivedMetrics = metrics
+	case "simple":
+		p.simpleMetrics = metrics
+	case "cumulative":
+		p.cumulativeMetrics = metrics
+	case "conversion":
+		p.conversionMetrics = metrics
+	}
+}
+
+// AfterModelGeneration implements ModelGenerationHook
+// Generates semantic layer files after core model generation
+func (p *MetricsPlugin) AfterModelGeneration(ctx context.Context, model *models.DbtModel) error {
+	return p.GenerateForModel(model)
+}
+
+// EnrichExplore implements ExploreEnrichmentHook
+// Adds joins for metric views to the explore
+func (p *MetricsPlugin) EnrichExplore(ctx context.Context, model *models.DbtModel, explore *models.LookMLExplore, baseName string) error {
+	if !p.Enabled() {
+		return nil
+	}
+
+	joins := p.GetExploreJoins(model, baseName)
+	explore.Joins = append(explore.Joins, joins...)
+
+	return nil
 }
