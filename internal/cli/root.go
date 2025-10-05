@@ -461,12 +461,12 @@ func generateLookML(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*
 	if cfg.UseSemanticModels {
 		metricsPlugin := pluginMetrics.NewMetricsPlugin(cfg)
 		generator.RegisterPlugin(metricsPlugin)
-		
+
 		// Pass manifest to plugin for parsing
 		// Plugin will parse semantic models and metrics internally
 		manifest := parser.GetManifest()
 		generator.LoadManifest(manifest)
-		
+
 		log.Info().Msg("Semantic measures and metrics will be parsed by plugin")
 	}
 

@@ -462,12 +462,7 @@ func (g *LookMLGenerator) generateExploreFile(model *models.DbtModel) error {
 
 // shouldGenerateExplore determines if an explore should be generated for a model
 func (g *LookMLGenerator) shouldGenerateExplore(model *models.DbtModel) bool {
-	// Check if model has joins defined in meta
-	if model.Meta != nil && model.Meta.Looker != nil && len(model.Meta.Looker.Joins) > 0 {
-		return true
-	}
-
-	// Default to generating explores for all models (can be configured)
+	// Generate explores for all models (can be configured in the future)
 	return true
 }
 
@@ -623,116 +618,14 @@ func (g *LookMLGenerator) getNestedViewFilename(model *models.DbtModel, arrayNam
 	return fmt.Sprintf("%s.view.lkml", viewName)
 }
 
-// viewToLookML converts a LookMLView to LookML string format
+// viewToLookML converts a LookMLView to its string representation using templates.
 func (g *LookMLGenerator) viewToLookML(view *models.LookMLView) (string, error) {
-	// This is a simplified implementation
-	// A full implementation would use a proper LookML serializer
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("view: %s {\n", view.Name))
-	builder.WriteString(fmt.Sprintf("  sql_table_name: %s ;;\n", view.SQLTableName))
-
-	if view.Label != nil {
-		builder.WriteString(fmt.Sprintf("  label: \"%s\"\n", *view.Label))
-	}
-
-	if view.Description != nil {
-		builder.WriteString(fmt.Sprintf("  description: \"%s\"\n", *view.Description))
-	}
-
-	// Add dimensions
-	for _, dimension := range view.Dimensions {
-		builder.WriteString(g.dimensionToLookML(&dimension))
-	}
-
-	// Add dimension groups
-	for _, dimensionGroup := range view.DimensionGroups {
-		builder.WriteString(g.dimensionGroupToLookML(&dimensionGroup))
-	}
-
-	// Add measures
-	for _, measure := range view.Measures {
-		builder.WriteString(g.measureToLookML(&measure))
-	}
-
-	builder.WriteString("}\n")
-
-	return builder.String(), nil
+	return renderLookML("view", view)
 }
 
-// lookmlJoinToLookML converts a LookML join to LookML string
-func (g *LookMLGenerator) lookmlJoinToLookML(join *models.LookMLJoin) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  join: %s {\n", join.Name))
-
-	if join.ViewLabel != nil {
-		builder.WriteString(fmt.Sprintf("    view_label: \"%s\"\n", *join.ViewLabel))
-	}
-
-	if join.SQL != nil {
-		builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", *join.SQL))
-	}
-
-	if join.Relationship != nil {
-		builder.WriteString(fmt.Sprintf("    relationship: %s\n", string(*join.Relationship)))
-	}
-
-	builder.WriteString("  }\n")
-
-	return builder.String()
-}
-
-// exploreToLookML converts an explore to LookML string
+// exploreToLookML converts a LookMLExplore to its string representation using templates.
 func (g *LookMLGenerator) exploreToLookML(explore *models.LookMLExplore) (string, error) {
-	var builder strings.Builder
-
-	builder.WriteString("\n# Un-hide and use this explore, or copy the joins into another explore, to get all the fully nested relationships from this view\n")
-	builder.WriteString(fmt.Sprintf("explore: %s {\n", explore.Name))
-	builder.WriteString("  hidden: yes\n")
-
-	// Add joins
-	for _, join := range explore.Joins {
-		builder.WriteString(g.lookmlJoinToLookML(&join))
-	}
-
-	builder.WriteString("}\n")
-
-	return builder.String(), nil
-}
-
-// dimensionToLookML converts a dimension to LookML string
-func (g *LookMLGenerator) dimensionToLookML(dimension *models.LookMLDimension) string {
-	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("  dimension: %s {\n", dimension.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", dimension.Type))
-	builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", dimension.SQL))
-
-	// Add group_label if present
-	if dimension.GroupLabel != nil {
-		builder.WriteString(fmt.Sprintf("    group_label: \"%s\"\n", *dimension.GroupLabel))
-	}
-
-	// Add group_item_label if present
-	if dimension.GroupItemLabel != nil {
-		builder.WriteString(fmt.Sprintf("    group_item_label: \"%s\"\n", *dimension.GroupItemLabel))
-	}
-
-	if dimension.Label != nil {
-		builder.WriteString(fmt.Sprintf("    label: \"%s\"\n", *dimension.Label))
-	}
-
-	if dimension.Description != nil {
-		builder.WriteString(fmt.Sprintf("    description: \"%s\"\n", *dimension.Description))
-	}
-
-	if dimension.Hidden != nil && *dimension.Hidden {
-		builder.WriteString("    hidden: yes\n")
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
+	return renderLookML("explore", explore)
 }
 
 // generateNestedViewsInline generates nested views and appends them to the content builder
@@ -939,70 +832,4 @@ func (g *LookMLGenerator) generateNestedViewSQL(viewName string, arrayName strin
 		return fmt.Sprintf("%s.%s", viewName, strings.ToLower(columnName))
 	}
 	return fmt.Sprintf("${TABLE}.%s", strings.ToLower(columnName))
-}
-
-// dimensionGroupToLookML converts a dimension group to LookML string
-func (g *LookMLGenerator) dimensionGroupToLookML(dimensionGroup *models.LookMLDimensionGroup) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  dimension_group: %s {\n", dimensionGroup.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", dimensionGroup.Type))
-	builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", dimensionGroup.SQL))
-
-	if len(dimensionGroup.Timeframes) > 0 {
-		timeframes := make([]string, len(dimensionGroup.Timeframes))
-		for i, tf := range dimensionGroup.Timeframes {
-			timeframes[i] = string(tf)
-		}
-		builder.WriteString(fmt.Sprintf("    timeframes: [%s]\n", strings.Join(timeframes, ", ")))
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
-}
-
-// measureToLookML converts a measure to LookML string
-func (g *LookMLGenerator) measureToLookML(measure *models.LookMLMeasure) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  measure: %s {\n", measure.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", string(measure.Type)))
-
-	if measure.SQL != nil {
-		builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", *measure.SQL))
-	}
-
-	if measure.Label != nil {
-		builder.WriteString(fmt.Sprintf("    label: \"%s\"\n", *measure.Label))
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
-}
-
-// joinToLookML converts a join to LookML string
-func (g *LookMLGenerator) joinToLookML(join *models.DbtMetaLookerJoin) string {
-	var builder strings.Builder
-
-	if join.JoinModel != nil {
-		builder.WriteString(fmt.Sprintf("  join: %s {\n", *join.JoinModel))
-
-		if join.SQLON != nil {
-			builder.WriteString(fmt.Sprintf("    sql_on: %s ;;\n", *join.SQLON))
-		}
-
-		if join.Type != nil {
-			builder.WriteString(fmt.Sprintf("    type: %s\n", string(*join.Type)))
-		}
-
-		if join.Relationship != nil {
-			builder.WriteString(fmt.Sprintf("    relationship: %s\n", string(*join.Relationship)))
-		}
-
-		builder.WriteString("  }\n\n")
-	}
-
-	return builder.String()
 }

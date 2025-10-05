@@ -54,9 +54,7 @@ func (g *DimensionGenerator) GenerateDimension(model *models.DbtModel, column *m
 		Name:           dimensionName,
 		Type:           g.getDimensionType(column),
 		SQL:            g.getDimensionSQL(model, column),
-		Label:          g.getDimensionLabel(column),
 		Description:    g.getDimensionDescription(column),
-		Hidden:         g.getDimensionHidden(column),
 		GroupLabel:     g.GetDimensionGroupLabel(column),
 		GroupItemLabel: g.getDimensionGroupItemLabel(column),
 	}
@@ -65,15 +63,6 @@ func (g *DimensionGenerator) GenerateDimension(model *models.DbtModel, column *m
 	if isArrayColumn {
 		hidden := true
 		dimension.Hidden = &hidden
-	}
-
-	// Set additional properties based on type
-	switch dimension.Type {
-	case "yesno":
-		// Boolean dimensions don't need additional properties
-	case "number":
-		// Number dimensions might have value format
-		dimension.ValueFormatName = g.getDimensionValueFormat(column)
 	}
 
 	return dimension, nil
@@ -89,12 +78,9 @@ func (g *DimensionGenerator) GenerateDimensionGroup(model *models.DbtModel, colu
 		Name:        g.getDimensionGroupName(column),
 		Type:        g.getDimensionGroupType(column),
 		SQL:         g.getDimensionSQL(model, column),
-		Label:       g.getDimensionLabel(column),
 		Description: g.getDimensionDescription(column),
-		Hidden:      g.getDimensionHidden(column),
 		GroupLabel:  g.GetDimensionGroupLabel(column),
 		Timeframes:  g.getDimensionGroupTimeframes(column),
-		ConvertTZ:   g.getDimensionGroupConvertTZ(column),
 	}
 
 	return dimensionGroup, nil
@@ -236,101 +222,35 @@ func (g *DimensionGenerator) getDimensionSQL(model *models.DbtModel, column *mod
 	return fmt.Sprintf("${TABLE}.%s", columnName)
 }
 
-// getDimensionLabel gets the dimension label
-func (g *DimensionGenerator) getDimensionLabel(column *models.DbtModelColumn) *string {
-	// Only return label if explicitly defined in metadata
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.Label != nil {
-		return column.Meta.Looker.Dimension.Label
-	}
-
-	// Return nil to omit label when not explicitly defined (matches fixture behavior)
-	return nil
-}
-
-// getDimensionDescription gets the dimension description
+// getDimensionDescription gets the dimension description from column metadata
 func (g *DimensionGenerator) getDimensionDescription(column *models.DbtModelColumn) *string {
-	// Check meta looker dimension description first
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.Description != nil {
-		return column.Meta.Looker.Dimension.Description
-	}
-
 	// Return column description only if it exists and is not empty
 	if column.Description != nil && *column.Description != "" {
 		return column.Description
 	}
-
-	// Return nil to omit description when not present (matches fixture behavior)
-	return nil
-}
-
-// getDimensionHidden gets the dimension hidden setting
-func (g *DimensionGenerator) getDimensionHidden(column *models.DbtModelColumn) *bool {
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.Hidden != nil {
-		return column.Meta.Looker.Dimension.Hidden
-	}
+	// Omit description when not present (matches fixture behavior)
 	return nil
 }
 
 // GetDimensionGroupLabel gets the group label for the dimension
 func (g *DimensionGenerator) GetDimensionGroupLabel(column *models.DbtModelColumn) *string {
-	// Check metadata first
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.GroupLabel != nil {
-		return column.Meta.Looker.Dimension.GroupLabel
-	}
-
 	// For nested columns like "classification.assortment.code",
-	// create group label from parent path: "Classification Assortment"
-	if strings.Contains(column.Name, ".") {
-		parts := strings.Split(column.Name, ".")
+	// extract parent path as group label ("classification.assortment")
+	if column.OriginalName != nil && strings.Contains(*column.OriginalName, ".") {
+		parts := strings.Split(*column.OriginalName, ".")
 		if len(parts) > 1 {
-			// Take all parts except the last one
-			parentParts := parts[:len(parts)-1]
-			// Convert each part to title case and join with space
-			var titleParts []string
-			for _, part := range parentParts {
-				titleParts = append(titleParts, utils.ToTitleCase(part))
-			}
-			label := strings.Join(titleParts, " ")
-			return &label
+			// Join all parts except the last (the field name itself)
+			parentPath := strings.Join(parts[:len(parts)-1], ".")
+			// Convert to title case
+			groupLabel := utils.ToTitleCase(parentPath)
+			return &groupLabel
 		}
 	}
-
 	return nil
 }
 
-// getDimensionValueFormat gets the value format for number dimensions
-func (g *DimensionGenerator) getDimensionValueFormat(column *models.DbtModelColumn) *enums.LookerValueFormatName {
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.ValueFormatName != nil {
-		return column.Meta.Looker.Dimension.ValueFormatName
-	}
-	return nil
-}
-
-// getDimensionGroupTimeframes gets the timeframes for dimension groups
+// getDimensionGroupTimeframes gets the timeframes for a dimension group
 func (g *DimensionGenerator) getDimensionGroupTimeframes(column *models.DbtModelColumn) []enums.LookerTimeFrame {
-	// Check meta looker dimension timeframes
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		len(column.Meta.Looker.Dimension.Timeframes) > 0 {
-		return column.Meta.Looker.Dimension.Timeframes
-	}
-
 	// Use config timeframes if specified
 	if len(g.config.Timeframes) > 0 {
 		var timeframes []enums.LookerTimeFrame
@@ -366,17 +286,6 @@ func (g *DimensionGenerator) getDimensionGroupTimeframes(column *models.DbtModel
 		}
 	}
 
-	return nil
-}
-
-// getDimensionGroupConvertTZ gets the convert_tz setting for dimension groups
-func (g *DimensionGenerator) getDimensionGroupConvertTZ(column *models.DbtModelColumn) *bool {
-	if column.Meta != nil &&
-		column.Meta.Looker != nil &&
-		column.Meta.Looker.Dimension != nil &&
-		column.Meta.Looker.Dimension.ConvertTZ != nil {
-		return column.Meta.Looker.Dimension.ConvertTZ
-	}
 	return nil
 }
 

@@ -121,15 +121,7 @@ func (g *ViewGenerator) getSQLTableName(model *models.DbtModel) string {
 
 // getViewLabel gets the view label from model metadata or generates one
 func (g *ViewGenerator) getViewLabel(model *models.DbtModel) *string {
-	// Only return label if explicitly defined in metadata (matches fixture behavior)
-	if model.Meta != nil &&
-		model.Meta.Looker != nil &&
-		model.Meta.Looker.View != nil &&
-		model.Meta.Looker.View.Label != nil {
-		return model.Meta.Looker.View.Label
-	}
-
-	// Return nil to omit label when not explicitly defined
+	// Labels are not generated - they would need to come from semantic models
 	return nil
 }
 
@@ -143,12 +135,7 @@ func (g *ViewGenerator) getViewDescription(model *models.DbtModel) *string {
 
 // getViewHidden gets the view hidden setting from model metadata
 func (g *ViewGenerator) getViewHidden(model *models.DbtModel) *bool {
-	if model.Meta != nil &&
-		model.Meta.Looker != nil &&
-		model.Meta.Looker.View != nil &&
-		model.Meta.Looker.View.Hidden != nil {
-		return model.Meta.Looker.View.Hidden
-	}
+	// Views are visible by default
 	return nil
 }
 
@@ -173,7 +160,6 @@ func (g *ViewGenerator) generateDimensionsWithCollections(model *models.DbtModel
 			Nested:       column.Nested,
 			IsPrimaryKey: column.IsPrimaryKey,
 			InnerTypes:   column.InnerTypes, // Slice is copied by value
-			Meta:         column.Meta,       // Pointer to metadata (shared is OK)
 		}
 
 		// Deep copy all pointer fields to avoid shared references
@@ -330,7 +316,6 @@ func (g *ViewGenerator) generateMeasuresWithSemanticModels(
 	model *models.DbtModel,
 	semanticMeasures []models.DbtSemanticMeasure,
 ) ([]models.LookMLMeasure, error) {
-	var metaMeasures []*models.LookMLMeasure
 	var semanticLookMLMeasures []*models.LookMLMeasure
 
 	// Generate measures from semantic models if enabled and provided
@@ -346,31 +331,10 @@ func (g *ViewGenerator) generateMeasuresWithSemanticModels(
 		}
 	}
 
-	// Generate measures from model meta
-	if model.Meta != nil && model.Meta.Looker != nil {
-		for _, measureMeta := range model.Meta.Looker.Measures {
-			measure, err := g.measureGenerator.GenerateMeasure(model, &measureMeta)
-			if err != nil {
-				return nil, fmt.Errorf("failed to generate measure: %w", err)
-			}
-
-			if measure != nil {
-				metaMeasures = append(metaMeasures, measure)
-			}
-		}
-	}
-
-	// Merge semantic and meta measures (semantic measures take precedence)
+	// Only use semantic model measures
 	var mergedMeasures []*models.LookMLMeasure
-	if len(semanticLookMLMeasures) > 0 && len(metaMeasures) > 0 {
-		mergedMeasures = g.semanticMeasureGenerator.MergeWithMetaMeasures(
-			semanticLookMLMeasures,
-			metaMeasures,
-		)
-	} else if len(semanticLookMLMeasures) > 0 {
+	if len(semanticLookMLMeasures) > 0 {
 		mergedMeasures = semanticLookMLMeasures
-	} else {
-		mergedMeasures = metaMeasures
 	}
 
 	// Convert pointer slice to value slice

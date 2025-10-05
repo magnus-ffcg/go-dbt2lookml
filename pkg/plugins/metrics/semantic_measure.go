@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
@@ -159,22 +160,40 @@ func (g *SemanticMeasureGenerator) getMeasureSQL(
 
 // buildSQLFromExpr builds the SQL expression from the semantic model expr
 func (g *SemanticMeasureGenerator) buildSQLFromExpr(expr string, agg string) string {
-	// Check if expr is already a reference (starts with ${})
-	if strings.HasPrefix(expr, "${") {
+	// Check if expr is already a LookML reference
+	if strings.HasPrefix(expr, "${") && strings.HasSuffix(expr, "}") {
 		return expr
 	}
 
-	// Build LookML-style reference
-	// Convert column name to dimension reference
-	columnRef := fmt.Sprintf("${TABLE}.%s", strings.ToLower(expr))
+	// Regex to find column names (words not inside quotes)
+	// This is a simplified regex and might not cover all edge cases
+	re := regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
+
+	// Replace all found column names with ${TABLE}.column_name
+	lookmlExpr := re.ReplaceAllStringFunc(expr, func(match string) string {
+		// Avoid replacing SQL keywords
+		if isSQLKeyword(match) {
+			return match
+		}
+		return fmt.Sprintf("${TABLE}.%s", strings.ToLower(match))
+	})
 
 	// Special handling for sum_boolean
 	if agg == "sum_boolean" {
-		// Cast boolean to integer for summing
-		return fmt.Sprintf("CAST(%s AS INT64)", columnRef)
+		return fmt.Sprintf("CAST(%s AS INT64)", lookmlExpr)
 	}
 
-	return columnRef
+	return lookmlExpr
+}
+
+// isSQLKeyword checks if a word is a common SQL keyword
+func isSQLKeyword(word string) bool {
+	keywords := map[string]bool{
+		"SELECT": true, "FROM": true, "WHERE": true, "GROUP": true, "BY": true, "ORDER": true, "AS": true,
+		"CASE": true, "WHEN": true, "THEN": true, "ELSE": true, "END": true, "AND": true, "OR": true, "NOT": true,
+		"SUM": true, "AVG": true, "COUNT": true, "MIN": true, "MAX": true, "CAST": true,
+	}
+	return keywords[strings.ToUpper(word)]
 }
 
 // HasSemanticMeasureWithName checks if a semantic measure with the given name exists

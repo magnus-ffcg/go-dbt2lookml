@@ -149,7 +149,6 @@ type DbtCatalog struct {
 
 // DbtModelColumnMeta represents metadata about a column in a dbt model
 type DbtModelColumnMeta struct {
-	Looker *DbtMetaLooker `json:"looker,omitempty" yaml:"looker,omitempty"`
 }
 
 // DbtModelColumn represents a column in a dbt model
@@ -226,7 +225,6 @@ func isLowerCaseWithoutUnderscore(s string) bool {
 
 // DbtModelMeta represents metadata about a dbt model
 type DbtModelMeta struct {
-	Looker *DbtMetaLooker `json:"looker,omitempty" yaml:"looker,omitempty"`
 }
 
 // DbtModel represents a dbt model
