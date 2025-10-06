@@ -13,6 +13,7 @@ import (
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/generators"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/parsers"
+	pluginMetrics "github.com/magnus-ffcg/go-dbt2lookml/pkg/plugins/metrics"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -43,6 +44,7 @@ type cliFlags struct {
 	reportPath                  string
 	flatten                     bool
 	nestedViewExplicitReference bool
+	useSemanticModels           bool
 }
 
 // flags is the single instance holding CLI flag values
@@ -110,6 +112,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&flags.flatten, "flatten", false, "Generate all LookML files in output directory without subdirectories")
 	rootCmd.Flags().BoolVar(&flags.nestedViewExplicitReference, "nested-view-explicit-reference", false, "Use explicit view_name.column references in nested views instead of ${TABLE}")
 
+	// Semantic Model Options
+	rootCmd.Flags().BoolVar(&flags.useSemanticModels, "use-semantic-models", false, "Parse dbt semantic models and generate LookML measures from them (semantic model measures override meta measures with same name)")
+
 	// Error Handling & Logging
 	rootCmd.Flags().StringVar(&flags.logLevel, "log-level", "INFO", "Logging level: DEBUG, INFO, WARN, ERROR")
 	rootCmd.Flags().StringVar(&flags.logFormat, "log-format", "console", "Log output format: json, console")
@@ -133,6 +138,7 @@ func init() {
 	_ = viper.BindPFlag("remove_schema_string", rootCmd.Flags().Lookup("remove-schema-string"))
 	_ = viper.BindPFlag("flatten", rootCmd.Flags().Lookup("flatten"))
 	_ = viper.BindPFlag("nested_view_explicit_reference", rootCmd.Flags().Lookup("nested-view-explicit-reference"))
+	_ = viper.BindPFlag("use_semantic_models", rootCmd.Flags().Lookup("use-semantic-models"))
 	_ = viper.BindPFlag("log_level", rootCmd.Flags().Lookup("log-level"))
 	_ = viper.BindPFlag("log_format", rootCmd.Flags().Lookup("log-format"))
 	_ = viper.BindPFlag("continue_on_error", rootCmd.Flags().Lookup("continue-on-error"))
@@ -163,107 +169,39 @@ func initConfig() {
 func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 	startTime := time.Now()
 
-	// Load configuration
-	cfg, err := config.LoadConfig()
+	// Load and setup configuration
+	cfg, logger, err := loadAndSetupConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return err
 	}
-
-	// Validate file paths exist before proceeding
-	if err := cfg.ValidateFilePaths(); err != nil {
-		return fmt.Errorf("configuration error: %w", err)
-	}
-
-	// Set up logging
-	logger := setupLogging(cfg.LogLevel, cfg.LogFormat)
-	cfg.SetLogger(logger)
-	log.Logger = logger // Set global logger for log.Info(), log.Debug(), etc.
+	log.Logger = logger // Set global logger
 
 	log.Info().Msg("Starting dbt2lookml conversion")
 	log.Info().Str("manifest", cfg.ManifestPath).Str("catalog", cfg.CatalogPath).Str("output", cfg.OutputDir).Msg("Configuration")
 
-	// Load manifest and catalog files
-	log.Info().Msg("Loading dbt files")
-	parseStart := time.Now()
-
-	rawManifest, err := loadJSONFile(cfg.ManifestPath)
+	// Parse dbt files
+	parser, dbtModels, parseTime, err := parseDBTFiles(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to load manifest: %w", err)
+		return err
 	}
 
-	rawCatalog, err := loadJSONFile(cfg.CatalogPath)
-	if err != nil {
-		return fmt.Errorf("failed to load catalog: %w", err)
-	}
-
-	// Parse dbt data
-	parser, err := parsers.NewDbtParser(cfg, rawManifest, rawCatalog)
-	if err != nil {
-		return fmt.Errorf("failed to create parser: %w", err)
-	}
-
-	models, err := parser.GetModels()
-	if err != nil {
-		return fmt.Errorf("failed to parse models: %w", err)
-	}
-
-	parseTime := time.Since(parseStart)
-	log.Info().Int("count", len(models)).Dur("time", parseTime).Msg("Parsed models")
-
-	if len(models) == 0 {
+	if len(dbtModels) == 0 {
 		log.Warn().Msg("No models found matching the specified criteria")
 		return nil
 	}
 
 	// Generate LookML
-	log.Info().Msg("Generating LookML files")
-	generateStart := time.Now()
-
-	generator := generators.NewLookMLGenerator(cfg)
-
-	// Use new error strategy system for better error handling
-	var errorStrategy generators.ErrorStrategy
-	if cfg.ContinueOnError {
-		errorStrategy = generators.ContinueOnError
-	} else {
-		errorStrategy = generators.FailFast
-	}
-
-	opts := generators.GenerationOptions{
-		ErrorStrategy: errorStrategy,
-		MaxErrors:     0, // No limit
-	}
-
-	result, err := generator.GenerateAllWithOptions(context.Background(), models, opts)
+	_, result, generateTime, err := generateLookML(cfg, parser, dbtModels)
 	if err != nil {
-		if cfg.ContinueOnError {
-			log.Warn().Err(err).Msg("Generation completed with errors")
-		} else {
-			return fmt.Errorf("failed to generate LookML: %w", err)
-		}
+		return err
 	}
-
-	// Report any model-specific errors
-	if result.HasErrors() {
-		log.Warn().Int("failed", len(result.Errors)).Msg("Models failed to generate")
-		for _, modelErr := range result.Errors {
-			log.Warn().Str("model", modelErr.ModelName).Err(modelErr.Error).Msg("Model generation failed")
-		}
-	}
-
-	generateTime := time.Since(generateStart)
-	totalTime := time.Since(startTime)
 
 	// Report results
-	if !result.HasErrors() || cfg.ContinueOnError {
-		log.Info().Msg("Generation completed")
-	}
-	log.Info().Int("files", result.FilesGenerated).Int("models", result.ModelsProcessed).Msg("Results")
-	log.Info().Dur("parse", parseTime).Dur("generation", generateTime).Dur("total", totalTime).Msg("Timing")
+	reportResults(cfg, result, parseTime, generateTime, time.Since(startTime))
 
 	// Generate report if requested
 	if cfg.ReportPath != "" {
-		if err := generateReport(cfg.ReportPath, models, result.FilesGenerated, parseTime, generateTime, totalTime); err != nil {
+		if err := generateReport(cfg.ReportPath, dbtModels, result.FilesGenerated, parseTime, generateTime, time.Since(startTime)); err != nil {
 			log.Warn().Err(err).Msg("Failed to generate report")
 		} else {
 			log.Info().Str("path", cfg.ReportPath).Msg("Report generated")
@@ -271,6 +209,305 @@ func runDbt2Lookml(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// loadAndSetupConfig loads configuration and sets up logging
+func loadAndSetupConfig() (*config.Config, zerolog.Logger, error) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil, zerolog.Logger{}, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if err := cfg.ValidateFilePaths(); err != nil {
+		return nil, zerolog.Logger{}, fmt.Errorf("configuration error: %w", err)
+	}
+
+	logger := setupLogging(cfg.LogLevel, cfg.LogFormat)
+	cfg.SetLogger(logger)
+
+	return cfg, logger, nil
+}
+
+// parseDBTFiles loads and parses dbt manifest and catalog files
+func parseDBTFiles(cfg *config.Config) (*parsers.DbtParser, []*models.DbtModel, time.Duration, error) {
+	log.Info().Msg("Loading dbt files")
+	parseStart := time.Now()
+
+	rawManifest, err := loadJSONFile(cfg.ManifestPath)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to load manifest: %w", err)
+	}
+
+	rawCatalog, err := loadJSONFile(cfg.CatalogPath)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to load catalog: %w", err)
+	}
+
+	parser, err := parsers.NewDbtParser(cfg, rawManifest, rawCatalog)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to create parser: %w", err)
+	}
+
+	dbtModels, err := parser.GetModels()
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to parse models: %w", err)
+	}
+
+	parseTime := time.Since(parseStart)
+	log.Info().Int("count", len(dbtModels)).Dur("time", parseTime).Msg("Parsed models")
+
+	return parser, dbtModels, parseTime, nil
+}
+
+// Deprecated helper functions below - no longer used with new plugin architecture
+// Kept temporarily for reference, will be removed in next cleanup
+
+// loadSemanticMeasures loads and processes semantic models if enabled
+// Deprecated: Plugins now parse manifest internally
+func loadSemanticMeasures(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*models.DbtModel) map[string][]models.DbtSemanticMeasure {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing semantic models")
+	semanticModelParser := parser.GetSemanticModelParser()
+
+	if !semanticModelParser.HasSemanticModels() {
+		log.Info().Msg("No semantic models found in manifest")
+		return nil
+	}
+
+	semanticModelMap, err := semanticModelParser.LinkSemanticModelToModel(dbtModels)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to link semantic models to dbt models")
+		return nil
+	}
+
+	measureMap := make(map[string][]models.DbtSemanticMeasure)
+	for modelName, semanticModels := range semanticModelMap {
+		var allMeasures []models.DbtSemanticMeasure
+		for _, sm := range semanticModels {
+			allMeasures = append(allMeasures, sm.Measures...)
+		}
+		if len(allMeasures) > 0 {
+			measureMap[modelName] = allMeasures
+			log.Debug().
+				Str("model", modelName).
+				Int("measures", len(allMeasures)).
+				Msg("Added semantic measures for model")
+		}
+	}
+
+	log.Info().Int("models_with_semantic_measures", len(measureMap)).Msg("Loaded semantic models")
+	return measureMap
+}
+
+// loadRatioMetrics loads and processes ratio metrics if enabled
+// Deprecated: Plugins now parse manifest internally
+func loadRatioMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing ratio metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	ratioMetrics, err := metricParser.GetRatioMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get ratio metrics")
+		return nil
+	}
+
+	if len(ratioMetrics) == 0 {
+		log.Debug().Msg("No ratio metrics found")
+		return nil
+	}
+
+	log.Info().Int("ratio_metrics_count", len(ratioMetrics)).Msg("Loaded ratio metrics")
+	return ratioMetrics
+}
+
+// loadDerivedMetrics loads and processes derived metrics if enabled
+// Deprecated: Plugins now parse manifest internally
+func loadDerivedMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing derived metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	derivedMetrics, err := metricParser.GetDerivedMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get derived metrics")
+		return nil
+	}
+
+	if len(derivedMetrics) == 0 {
+		log.Debug().Msg("No derived metrics found")
+		return nil
+	}
+
+	log.Info().Int("derived_metrics_count", len(derivedMetrics)).Msg("Loaded derived metrics")
+	return derivedMetrics
+}
+
+// loadSimpleMetrics loads and processes simple metrics with filters if enabled
+// Deprecated: Plugins now parse manifest internally
+func loadSimpleMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing simple metrics with filters")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	simpleMetrics, err := metricParser.GetSimpleMetricsWithFilters()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get simple metrics")
+		return nil
+	}
+
+	if len(simpleMetrics) == 0 {
+		log.Debug().Msg("No simple metrics with filters found")
+		return nil
+	}
+
+	log.Info().Int("simple_metrics_count", len(simpleMetrics)).Msg("Loaded simple metrics with filters")
+	return simpleMetrics
+}
+
+// loadCumulativeMetrics loads and processes cumulative metrics if enabled
+func loadCumulativeMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing cumulative metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	cumulativeMetrics, err := metricParser.GetCumulativeMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get cumulative metrics")
+		return nil
+	}
+
+	if len(cumulativeMetrics) == 0 {
+		log.Debug().Msg("No cumulative metrics found")
+		return nil
+	}
+
+	log.Info().Int("cumulative_metrics_count", len(cumulativeMetrics)).Msg("Loaded cumulative metrics")
+	return cumulativeMetrics
+}
+
+// loadConversionMetrics loads and processes conversion metrics if enabled
+func loadConversionMetrics(cfg *config.Config, parser *parsers.DbtParser) []models.DbtMetric {
+	if !cfg.UseSemanticModels {
+		return nil
+	}
+
+	log.Info().Msg("Parsing conversion metrics")
+	metricParser := parser.GetMetricParser()
+
+	if !metricParser.HasMetrics() {
+		log.Info().Msg("No metrics found in manifest")
+		return nil
+	}
+
+	conversionMetrics, err := metricParser.GetConversionMetrics()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to get conversion metrics")
+		return nil
+	}
+
+	if len(conversionMetrics) == 0 {
+		log.Debug().Msg("No conversion metrics found")
+		return nil
+	}
+
+	log.Info().Int("conversion_metrics_count", len(conversionMetrics)).Msg("Loaded conversion metrics")
+	return conversionMetrics
+}
+
+// generateLookML generates LookML files from dbt models
+func generateLookML(cfg *config.Config, parser *parsers.DbtParser, dbtModels []*models.DbtModel) (*generators.LookMLGenerator, *generators.GenerationResult, time.Duration, error) {
+	log.Info().Msg("Generating LookML files")
+	generateStart := time.Now()
+
+	generator := generators.NewLookMLGenerator(cfg)
+
+	// Register metrics plugin if semantic models enabled
+	if cfg.UseSemanticModels {
+		metricsPlugin := pluginMetrics.NewMetricsPlugin(cfg)
+		generator.RegisterPlugin(metricsPlugin)
+
+		// Pass manifest to plugin for parsing
+		// Plugin will parse semantic models and metrics internally
+		manifest := parser.GetManifest()
+		generator.LoadManifest(manifest)
+
+		log.Info().Msg("Semantic measures and metrics will be parsed by plugin")
+	}
+
+	// Configure error handling strategy
+	errorStrategy := generators.FailFast
+	if cfg.ContinueOnError {
+		errorStrategy = generators.ContinueOnError
+	}
+
+	opts := generators.GenerationOptions{
+		ErrorStrategy: errorStrategy,
+		MaxErrors:     0, // No limit
+	}
+
+	result, err := generator.GenerateAllWithOptions(context.Background(), dbtModels, opts)
+	if err != nil {
+		if cfg.ContinueOnError {
+			log.Warn().Err(err).Msg("Generation completed with errors")
+		} else {
+			return nil, nil, 0, fmt.Errorf("failed to generate LookML: %w", err)
+		}
+	}
+
+	return generator, result, time.Since(generateStart), nil
+}
+
+// reportResults logs generation results and any errors
+func reportResults(cfg *config.Config, result *generators.GenerationResult, parseTime, generateTime, totalTime time.Duration) {
+	if result.HasErrors() {
+		log.Warn().Int("failed", len(result.Errors)).Msg("Models failed to generate")
+		for _, modelErr := range result.Errors {
+			log.Warn().Str("model", modelErr.ModelName).Err(modelErr.Error).Msg("Model generation failed")
+		}
+	}
+
+	if !result.HasErrors() || cfg.ContinueOnError {
+		log.Info().Msg("Generation completed")
+	}
+
+	log.Info().Int("files", result.FilesGenerated).Int("models", result.ModelsProcessed).Msg("Results")
+	log.Info().Dur("parse", parseTime).Dur("generation", generateTime).Dur("total", totalTime).Msg("Timing")
 }
 
 // loadJSONFile loads and parses a JSON file

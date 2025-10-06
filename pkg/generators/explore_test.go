@@ -52,26 +52,17 @@ func TestExploreGenerator_GenerateExplore(t *testing.T) {
 			expectError:      false,
 		},
 		{
-			name: "model with custom metadata",
+			name: "model with description",
 			model: &models.DbtModel{
 				DbtNode: models.DbtNode{
 					Name: "meta_model",
 				},
 				RelationName: "`project.dataset.meta_table`",
 				Description:  "Model with custom metadata",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						View: &models.DbtMetaLookerBase{
-							Label:       exploreStringPtr("Custom Explore Label"),
-							Description: exploreStringPtr("Custom explore description"),
-							Hidden:      exploreBoolPtr(false),
-						},
-					},
-				},
 			},
 			expectedName:     "meta_model",
 			expectedViewName: "meta_model",
-			expectedLabel:    exploreStringPtr("Custom Explore Label"),
+			expectedLabel:    exploreStringPtr("Meta Model"), // Auto-generated from name
 			expectError:      false,
 		},
 	}
@@ -142,70 +133,6 @@ func TestExploreGenerator_ExploreAttributes(t *testing.T) {
 			checkFunc: func(t *testing.T, explore *models.LookMLExplore) {
 				require.NotNil(t, explore.Description)
 				assert.Equal(t, "This is a test model with description", *explore.Description)
-			},
-		},
-		{
-			name: "explore with custom metadata",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "meta_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						View: &models.DbtMetaLookerBase{
-							Label:       exploreStringPtr("Custom Explore Label"),
-							Description: exploreStringPtr("Custom explore description"),
-							Hidden:      exploreBoolPtr(true),
-						},
-					},
-				},
-			},
-			checkFunc: func(t *testing.T, explore *models.LookMLExplore) {
-				require.NotNil(t, explore.Label)
-				assert.Equal(t, "Custom Explore Label", *explore.Label)
-				require.NotNil(t, explore.Description)
-				assert.Equal(t, "Custom explore description", *explore.Description)
-				require.NotNil(t, explore.Hidden)
-				assert.True(t, *explore.Hidden)
-			},
-		},
-		{
-			name: "explore with joins metadata",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "join_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Joins: []models.DbtMetaLookerJoin{
-							{
-								JoinModel:    exploreStringPtr("other_model"),
-								SQLON:        exploreStringPtr("${join_model.id} = ${other_model.join_id}"),
-								Type:         joinTypePtr(enums.JoinLeftOuter),
-								Relationship: relationshipPtr(enums.RelationshipManyToOne),
-							},
-						},
-					},
-				},
-			},
-			checkFunc: func(t *testing.T, explore *models.LookMLExplore) {
-				assert.NotNil(t, explore.Joins)
-				if len(explore.Joins) > 0 {
-					join := explore.Joins[0]
-					// Note: Current implementation sets Name to empty string
-					assert.Equal(t, "", join.Name)
-					if join.SQL != nil {
-						assert.Equal(t, "${join_model.id} = ${other_model.join_id}", *join.SQL)
-					}
-					if join.Type != nil {
-						assert.Equal(t, enums.JoinLeftOuter, *join.Type)
-					}
-					if join.Relationship != nil {
-						assert.Equal(t, enums.RelationshipManyToOne, *join.Relationship)
-					}
-				}
 			},
 		},
 	}
@@ -292,83 +219,6 @@ func TestExploreGenerator_JoinGeneration(t *testing.T) {
 				assert.Empty(t, joins)
 			},
 		},
-		{
-			name: "model with single join",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "join_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Joins: []models.DbtMetaLookerJoin{
-							{
-								JoinModel:    exploreStringPtr("users"),
-								SQLON:        exploreStringPtr("${orders.user_id} = ${users.id}"),
-								Type:         joinTypePtr(enums.JoinLeftOuter),
-								Relationship: relationshipPtr(enums.RelationshipManyToOne),
-							},
-						},
-					},
-				},
-			},
-			expectedJoins: 1,
-			checkJoins: func(t *testing.T, joins []models.LookMLJoin) {
-				require.Len(t, joins, 1)
-				join := joins[0]
-				// Note: Current implementation sets Name to empty string
-				assert.Equal(t, "", join.Name)
-				require.NotNil(t, join.SQL)
-				assert.Equal(t, "${orders.user_id} = ${users.id}", *join.SQL)
-				require.NotNil(t, join.Type)
-				assert.Equal(t, enums.JoinLeftOuter, *join.Type)
-				require.NotNil(t, join.Relationship)
-				assert.Equal(t, enums.RelationshipManyToOne, *join.Relationship)
-			},
-		},
-		{
-			name: "model with multiple joins",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "multi_join_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Joins: []models.DbtMetaLookerJoin{
-							{
-								JoinModel:    exploreStringPtr("users"),
-								SQLON:        exploreStringPtr("${orders.user_id} = ${users.id}"),
-								Type:         joinTypePtr(enums.JoinLeftOuter),
-								Relationship: relationshipPtr(enums.RelationshipManyToOne),
-							},
-							{
-								JoinModel:    exploreStringPtr("products"),
-								SQLON:        exploreStringPtr("${orders.product_id} = ${products.id}"),
-								Type:         joinTypePtr(enums.JoinInner),
-								Relationship: relationshipPtr(enums.RelationshipManyToOne),
-							},
-						},
-					},
-				},
-			},
-			expectedJoins: 2,
-			checkJoins: func(t *testing.T, joins []models.LookMLJoin) {
-				require.Len(t, joins, 2)
-
-				// Check first join
-				// Note: Current implementation sets Name to empty string
-				assert.Equal(t, "", joins[0].Name)
-				require.NotNil(t, joins[0].Type)
-				assert.Equal(t, enums.JoinLeftOuter, *joins[0].Type)
-
-				// Check second join
-				// Note: Current implementation sets Name to empty string
-				assert.Equal(t, "", joins[1].Name)
-				require.NotNil(t, joins[1].Type)
-				assert.Equal(t, enums.JoinInner, *joins[1].Type)
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -379,56 +229,6 @@ func TestExploreGenerator_JoinGeneration(t *testing.T) {
 
 			assert.Len(t, explore.Joins, tt.expectedJoins)
 			tt.checkJoins(t, explore.Joins)
-		})
-	}
-}
-
-func TestExploreGenerator_JoinTypes(t *testing.T) {
-	cfg := &config.Config{}
-	generator := NewExploreGenerator(cfg)
-
-	tests := []struct {
-		name         string
-		joinType     enums.LookerJoinType
-		relationship enums.LookerRelationshipType
-	}{
-		{"left outer join", enums.JoinLeftOuter, enums.RelationshipManyToOne},
-		{"inner join", enums.JoinInner, enums.RelationshipOneToOne},
-		{"full outer join", enums.JoinFullOuter, enums.RelationshipOneToMany},
-		{"cross join", enums.JoinCross, enums.RelationshipManyToMany},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			model := &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "test_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Joins: []models.DbtMetaLookerJoin{
-							{
-								JoinModel:    exploreStringPtr("other_model"),
-								SQLON:        exploreStringPtr("${test_model.id} = ${other_model.id}"),
-								Type:         joinTypePtr(tt.joinType),
-								Relationship: relationshipPtr(tt.relationship),
-							},
-						},
-					},
-				},
-			}
-
-			explore, err := generator.GenerateExplore(model)
-			require.NoError(t, err)
-			require.NotNil(t, explore)
-			require.Len(t, explore.Joins, 1)
-
-			join := explore.Joins[0]
-			require.NotNil(t, join.Type)
-			assert.Equal(t, tt.joinType, *join.Type)
-			require.NotNil(t, join.Relationship)
-			assert.Equal(t, tt.relationship, *join.Relationship)
 		})
 	}
 }
@@ -487,31 +287,16 @@ func TestExploreGenerator_DescriptionPriority(t *testing.T) {
 	tests := []struct {
 		name                string
 		modelDescription    string
-		metaDescription     *string
 		expectedDescription *string
 	}{
 		{
-			name:                "model description only",
+			name:                "model with description",
 			modelDescription:    "Model description",
-			metaDescription:     nil,
 			expectedDescription: exploreStringPtr("Model description"),
 		},
 		{
-			name:                "meta description only",
+			name:                "model without description",
 			modelDescription:    "",
-			metaDescription:     exploreStringPtr("Meta description"),
-			expectedDescription: exploreStringPtr("Meta description"),
-		},
-		{
-			name:                "model description takes priority",
-			modelDescription:    "Model description",
-			metaDescription:     exploreStringPtr("Meta description"),
-			expectedDescription: exploreStringPtr("Model description"),
-		},
-		{
-			name:                "no description",
-			modelDescription:    "",
-			metaDescription:     nil,
 			expectedDescription: nil,
 		},
 	}
@@ -524,16 +309,6 @@ func TestExploreGenerator_DescriptionPriority(t *testing.T) {
 				},
 				RelationName: "`project.dataset.table`",
 				Description:  tt.modelDescription,
-			}
-
-			if tt.metaDescription != nil {
-				model.Meta = &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						View: &models.DbtMetaLookerBase{
-							Description: tt.metaDescription,
-						},
-					},
-				}
 			}
 
 			explore, err := generator.GenerateExplore(model)

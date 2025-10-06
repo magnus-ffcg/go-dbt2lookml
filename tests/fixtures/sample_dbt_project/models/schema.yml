@@ -1,0 +1,220 @@
+version: 2
+
+models:
+  - name: metricflow_time_spine
+    description: "Time spine for MetricFlow semantic layer"
+    config:
+      materialized: table
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        description: "Date column for time spine"
+        data_type: date
+        granularity: day
+
+  - name: orders
+    description: "Orders table with sample data"
+    columns:
+      - name: order_id
+        description: "Unique order identifier"
+        data_type: integer
+      - name: customer_id
+        description: "Customer identifier"
+        data_type: integer
+      - name: amount
+        description: "Order total amount"
+        data_type: numeric
+      - name: order_date
+        description: "Date the order was placed"
+        data_type: date
+      - name: status
+        description: "Order status"
+        data_type: varchar
+
+semantic_models:
+  - name: orders_metrics
+    model: ref('orders')
+    description: "Semantic model for order metrics"
+    
+    defaults:
+      agg_time_dimension: order_date
+    
+    entities:
+      - name: order
+        type: primary
+        expr: order_id
+      - name: customer
+        type: foreign
+        expr: customer_id
+    
+    dimensions:
+      - name: order_date
+        type: time
+        type_params:
+          time_granularity: day
+      - name: status
+        type: categorical
+    
+    measures:
+      - name: total_revenue
+        description: "Total revenue from orders"
+        agg: sum
+        expr: amount
+      
+      - name: order_count
+        description: "Number of orders"
+        agg: count
+        expr: "1"
+      
+      - name: avg_order_value
+        description: "Average order value"
+        agg: average
+        expr: amount
+        label: "Average Order Value"
+      
+      - name: unique_customers
+        description: "Count of unique customers"
+        agg: count_distinct
+        expr: customer_id
+      
+      - name: estimated_cost
+        description: "Estimated cost (70% of revenue for demo)"
+        agg: sum
+        expr: amount * 0.7
+      
+      - name: estimated_discount
+        description: "Estimated discounts (5% of revenue for demo)"
+        agg: sum
+        expr: amount * 0.05
+
+metrics:
+  # Simple metrics wrapping the measures
+  - name: total_revenue
+    description: "Total revenue from all orders"
+    label: "Total Revenue"
+    type: simple
+    type_params:
+      measure: total_revenue
+  
+  - name: unique_customers
+    description: "Count of unique customers"
+    label: "Unique Customers"
+    type: simple
+    type_params:
+      measure: unique_customers
+  
+  - name: estimated_cost
+    description: "Total estimated cost"
+    label: "Estimated Cost"
+    type: simple
+    type_params:
+      measure: estimated_cost
+  
+  - name: estimated_discount
+    description: "Total estimated discounts"
+    label: "Estimated Discounts"
+    type: simple
+    type_params:
+      measure: estimated_discount
+  
+  # Simple metrics with filters
+  - name: completed_orders
+    description: "Count of completed orders only"
+    label: "Completed Orders"
+    type: simple
+    type_params:
+      measure: order_count
+    filter: |
+      {{ Dimension('order__status') }} = 'completed'
+  
+  - name: high_value_revenue
+    description: "Revenue from orders over $100"
+    label: "High Value Revenue"
+    type: simple
+    type_params:
+      measure: total_revenue
+    filter: |
+      {{ Dimension('order__amount') }} > 100
+  
+  # Cumulative metrics - running totals and rolling windows
+  - name: rolling_7_day_revenue
+    description: "7-day rolling window of revenue"
+    label: "7-Day Rolling Revenue"
+    type: cumulative
+    type_params:
+      measure: total_revenue
+      cumulative_type_params:
+        window: 7 days
+  
+  - name: monthly_revenue_to_date
+    description: "Month-to-date cumulative revenue"
+    label: "Month-to-Date Revenue"
+    type: cumulative
+    type_params:
+      measure: total_revenue
+      cumulative_type_params:
+        grain_to_date: month
+  
+  - name: lifetime_revenue
+    description: "All-time cumulative revenue (no window limit)"
+    label: "Lifetime Revenue"
+    type: cumulative
+    type_params:
+      measure: total_revenue
+  
+  # Ratio metric using the simple metrics
+  - name: revenue_per_customer
+    description: "Average revenue per unique customer"
+    label: "Revenue per Customer"
+    type: ratio
+    type_params:
+      numerator: total_revenue
+      denominator: unique_customers
+  
+  # Derived metrics using expressions
+  - name: gross_profit
+    description: "Gross profit (revenue - cost)"
+    label: "Gross Profit"
+    type: derived
+    type_params:
+      expr: total_revenue - estimated_cost
+      metrics:
+        - name: total_revenue
+        - name: estimated_cost
+  
+  - name: net_revenue
+    description: "Net revenue after discounts (revenue - discounts)"
+    label: "Net Revenue"
+    type: derived
+    type_params:
+      expr: total_revenue - estimated_discount
+      metrics:
+        - name: total_revenue
+        - name: estimated_discount
+  
+  - name: net_profit
+    description: "Net profit (revenue - cost - discounts)"
+    label: "Net Profit"
+    type: derived
+    type_params:
+      expr: total_revenue - estimated_cost - estimated_discount
+      metrics:
+        - name: total_revenue
+        - name: estimated_cost
+        - name: estimated_discount
+  
+  # Conversion metrics - funnel analysis
+  - name: customer_repeat_purchase_rate
+    description: "Percentage of customers who make a repeat purchase within 30 days"
+    label: "Repeat Purchase Rate"
+    type: conversion
+    type_params:
+      conversion_type_params:
+        entity: customer
+        calculation: conversion_rate
+        base_measure:
+          name: unique_customers
+        conversion_measure:
+          name: order_count
+        window: 30 days

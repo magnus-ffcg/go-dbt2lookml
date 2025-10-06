@@ -213,17 +213,20 @@ func Pluralize(word string) string {
 	return word + "s"
 }
 
-// ToTitleCase converts a string to Title Case
+// ToTitleCase converts a string from snake_case or kebab-case to Title Case.
 func ToTitleCase(s string) string {
 	if s == "" {
-		return s
+		return ""
 	}
 
-	// Convert to title case: capitalize first letter of each word
-	words := strings.Fields(strings.ToLower(s))
+	// Replace underscores and hyphens with spaces
+	s = strings.ReplaceAll(s, "_", " ")
+	s = strings.ReplaceAll(s, "-", " ")
+
+	words := strings.Fields(s)
 	for i, word := range words {
 		if len(word) > 0 {
-			words[i] = strings.ToUpper(string(word[0])) + word[1:]
+			words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
 		}
 	}
 	return strings.Join(words, " ")

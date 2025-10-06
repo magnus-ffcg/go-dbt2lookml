@@ -32,8 +32,8 @@ type DimensionGeneratorInterface interface {
 
 // MeasureGeneratorInterface defines the interface for generating LookML measures
 type MeasureGeneratorInterface interface {
-	// GenerateMeasure generates a LookML measure from measure metadata
-	GenerateMeasure(model *models.DbtModel, measureMeta *models.DbtMetaLookerMeasure) (*models.LookMLMeasure, error)
+	// GenerateMeasure is deprecated - use semantic models instead
+	GenerateMeasure(model *models.DbtModel, measureMeta interface{}) (*models.LookMLMeasure, error)
 
 	// GenerateDefaultCountMeasure generates a default count measure for a model
 	GenerateDefaultCountMeasure(model *models.DbtModel) *models.LookMLMeasure
@@ -49,12 +49,6 @@ type MeasureGeneratorInterface interface {
 type ExploreGeneratorInterface interface {
 	// GenerateExplore generates a LookML explore from a dbt model
 	GenerateExplore(model *models.DbtModel) (*models.LookMLExplore, error)
-
-	// GenerateExploreWithJoins generates an explore with automatic joins based on foreign keys
-	GenerateExploreWithJoins(model *models.DbtModel, relatedModels []*models.DbtModel) (*models.LookMLExplore, error)
-
-	// ValidateExplore validates that an explore is properly configured
-	ValidateExplore(explore *models.LookMLExplore) []string
 }
 
 // LookMLGeneratorInterface defines the interface for the main LookML generator

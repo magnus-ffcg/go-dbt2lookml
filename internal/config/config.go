@@ -48,6 +48,9 @@ type Config struct {
 	Flatten                     bool     `mapstructure:"flatten"`
 	NestedViewExplicitReference bool     `mapstructure:"nested_view_explicit_reference"`
 
+	// Semantic model options
+	UseSemanticModels bool `mapstructure:"use_semantic_models"`
+
 	// Utility options
 	LogLevel        string `mapstructure:"log_level"`
 	LogFormat       string `mapstructure:"log_format"`
@@ -129,6 +132,7 @@ func setDefaults() {
 	viper.SetDefault("include_models", []string{})
 	viper.SetDefault("exclude_models", []string{})
 	viper.SetDefault("timeframes", []string{})
+	viper.SetDefault("use_semantic_models", false)
 }
 
 // Validate validates the configuration

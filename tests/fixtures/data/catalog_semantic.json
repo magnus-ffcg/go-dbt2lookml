@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "adapter_type": "bigquery"
+  },
+  "nodes": {
+    "model.test.orders": {
+      "metadata": {
+        "type": "table",
+        "schema": "dataset",
+        "name": "orders"
+      },
+      "columns": {
+        "order_id": {
+          "type": "INT64",
+          "data_type": "INT64",
+          "index": 1,
+          "name": "order_id",
+          "original_name": "order_id"
+        },
+        "customer_id": {
+          "type": "INT64",
+          "data_type": "INT64",
+          "index": 2,
+          "name": "customer_id",
+          "original_name": "customer_id"
+        },
+        "amount": {
+          "type": "NUMERIC",
+          "data_type": "NUMERIC",
+          "index": 3,
+          "name": "amount",
+          "original_name": "amount"
+        },
+        "order_date": {
+          "type": "DATE",
+          "data_type": "DATE",
+          "index": 4,
+          "name": "order_date",
+          "original_name": "order_date"
+        }
+      }
+    }
+  }
+}

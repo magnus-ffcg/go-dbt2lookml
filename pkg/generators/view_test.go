@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/magnus-ffcg/go-dbt2lookml/internal/config"
-	"github.com/magnus-ffcg/go-dbt2lookml/pkg/enums"
 	"github.com/magnus-ffcg/go-dbt2lookml/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,16 +87,7 @@ func TestViewGenerator_GenerateView(t *testing.T) {
 				RelationName: "`project.dataset.meta_table`",
 				Schema:       "test_schema",
 				Description:  "Model with metadata",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Measures: []models.DbtMetaLookerMeasure{
-							{
-								Name: viewStringPtr("total_amount"),
-								Type: enums.MeasureSum,
-							},
-						},
-					},
-				},
+				Meta:         &models.DbtModelMeta{},
 				Columns: map[string]models.DbtModelColumn{
 					"amount": {
 						Name:     "amount",
@@ -195,45 +185,6 @@ func TestViewGenerator_ViewAttributes(t *testing.T) {
 				assert.Equal(t, "This is a test model with description", *view.Description)
 			},
 		},
-		{
-			name: "model with looker metadata",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "meta_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Schema:       "test_schema",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						View: &models.DbtMetaLookerBase{
-							Label:       viewStringPtr("Custom View Label"),
-							Description: viewStringPtr("Custom view description"),
-							Hidden:      viewBoolPtr(true),
-						},
-					},
-				},
-				Columns: map[string]models.DbtModelColumn{
-					"id": {
-						Name:     "id",
-						DataType: viewStringPtr("INT64"),
-					},
-				},
-			},
-			checkFunc: func(t *testing.T, view *models.LookMLView) {
-				// Note: View metadata might not be implemented yet, so check if fields exist
-				if view.Label != nil {
-					assert.Equal(t, "Custom View Label", *view.Label)
-				}
-				if view.Description != nil {
-					assert.Equal(t, "Custom view description", *view.Description)
-				}
-				if view.Hidden != nil {
-					assert.True(t, *view.Hidden)
-				}
-				// For now, just verify the view was created successfully
-				assert.Equal(t, "meta_model", view.Name)
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -296,116 +247,6 @@ func TestViewGenerator_DimensionGeneration(t *testing.T) {
 
 	// Should have reference dimension for array column (short name, not full view name)
 	assert.Contains(t, dimensionNames, "tags")
-}
-
-func TestViewGenerator_MeasureGeneration(t *testing.T) {
-	cfg := &config.Config{}
-	generator := NewViewGenerator(cfg)
-
-	tests := []struct {
-		name          string
-		model         *models.DbtModel
-		expectedCount int
-		checkMeasures func(*testing.T, []models.LookMLMeasure)
-	}{
-		{
-			name: "model without metadata should have default count",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "simple_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Schema:       "test_schema",
-				Columns: map[string]models.DbtModelColumn{
-					"id": {
-						Name:     "id",
-						DataType: viewStringPtr("INT64"),
-					},
-				},
-			},
-			expectedCount: 1,
-			checkMeasures: func(t *testing.T, measures []models.LookMLMeasure) {
-				assert.Equal(t, "count", measures[0].Name)
-				assert.Equal(t, enums.MeasureCount, measures[0].Type)
-			},
-		},
-		{
-			name: "model with measure metadata",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "measure_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Schema:       "test_schema",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Measures: []models.DbtMetaLookerMeasure{
-							{
-								Name: viewStringPtr("total_amount"),
-								Type: enums.MeasureSum,
-							},
-						},
-					},
-				},
-				Columns: map[string]models.DbtModelColumn{
-					"amount": {
-						Name:     "amount",
-						DataType: viewStringPtr("NUMERIC"),
-					},
-				},
-			},
-			expectedCount: 2, // Custom measure + default count
-			checkMeasures: func(t *testing.T, measures []models.LookMLMeasure) {
-				measureNames := make([]string, len(measures))
-				for i, measure := range measures {
-					measureNames[i] = measure.Name
-				}
-				assert.Contains(t, measureNames, "total_amount")
-				assert.Contains(t, measureNames, "count")
-			},
-		},
-		{
-			name: "model with existing count measure should not duplicate",
-			model: &models.DbtModel{
-				DbtNode: models.DbtNode{
-					Name: "count_model",
-				},
-				RelationName: "`project.dataset.table`",
-				Schema:       "test_schema",
-				Meta: &models.DbtModelMeta{
-					Looker: &models.DbtMetaLooker{
-						Measures: []models.DbtMetaLookerMeasure{
-							{
-								Name: viewStringPtr("count"),
-								Type: enums.MeasureCount,
-							},
-						},
-					},
-				},
-				Columns: map[string]models.DbtModelColumn{
-					"id": {
-						Name:     "id",
-						DataType: viewStringPtr("INT64"),
-					},
-				},
-			},
-			expectedCount: 1, // Only the custom count measure
-			checkMeasures: func(t *testing.T, measures []models.LookMLMeasure) {
-				assert.Equal(t, "count", measures[0].Name)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			view, err := generator.GenerateView(tt.model)
-			require.NoError(t, err)
-			require.NotNil(t, view)
-
-			assert.Len(t, view.Measures, tt.expectedCount)
-			tt.checkMeasures(t, view.Measures)
-		})
-	}
 }
 
 func TestViewGenerator_ArrayHandling(t *testing.T) {

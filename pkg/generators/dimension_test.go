@@ -613,16 +613,18 @@ func TestDimensionGenerator_GroupLabels(t *testing.T) {
 		{
 			name: "nested column gets group label from parent path",
 			column: &models.DbtModelColumn{
-				Name:   "classification.assortment.code",
-				Nested: true,
+				Name:         "classification.assortment.code",
+				OriginalName: stringPtr("classification.assortment.code"),
+				Nested:       true,
 			},
-			expectedGroupLabel: stringPtr("Classification Assortment"),
+			expectedGroupLabel: stringPtr("Classification.assortment"),
 		},
 		{
 			name: "single level nested column",
 			column: &models.DbtModelColumn{
-				Name:   "address.street",
-				Nested: true,
+				Name:         "address.street",
+				OriginalName: stringPtr("address.street"),
+				Nested:       true,
 			},
 			expectedGroupLabel: stringPtr("Address"),
 		},

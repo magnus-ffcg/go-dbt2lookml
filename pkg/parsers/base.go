@@ -37,12 +37,15 @@ import (
 
 // DbtParser is the main DBT parser that coordinates parsing of manifest and catalog files
 type DbtParser struct {
-	config         *config.Config         // Configuration with CLI arguments
-	rawManifest    map[string]interface{} // Raw manifest data
-	catalog        *models.DbtCatalog
-	modelParser    *ModelParser
-	catalogParser  *CatalogParser
-	exposureParser *ExposureParser
+	config              *config.Config         // Configuration with CLI arguments
+	rawManifest         map[string]interface{} // Raw manifest data
+	manifest            *models.DbtManifest    // Parsed manifest
+	catalog             *models.DbtCatalog
+	modelParser         *ModelParser
+	catalogParser       *CatalogParser
+	exposureParser      *ExposureParser
+	semanticModelParser *SemanticModelParser
+	metricParser        *MetricParser
 }
 
 // NewDbtParser creates a new DbtParser instance
@@ -77,6 +80,7 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	parser := &DbtParser{
 		config:      cliArgs.(*config.Config),
 		rawManifest: rawManifest,
+		manifest:    &manifest,
 		catalog:     &catalog,
 	}
 
@@ -84,6 +88,8 @@ func NewDbtParser(cliArgs interface{}, rawManifest, rawCatalog map[string]interf
 	parser.modelParser = NewModelParser(&manifest, parser.config)
 	parser.catalogParser = NewCatalogParser(&catalog, rawCatalog, parser.config)
 	parser.exposureParser = NewExposureParser(&manifest)
+	parser.semanticModelParser = NewSemanticModelParser(&manifest)
+	parser.metricParser = NewMetricParser(&manifest)
 
 	return parser, nil
 }
@@ -170,4 +176,21 @@ func (p *DbtParser) getIncludeModels() []string {
 
 func (p *DbtParser) getExcludeModels() []string {
 	return p.config.ExcludeModels
+}
+
+// GetSemanticModelParser returns the semantic model parser
+// Deprecated: Use GetManifest and parse internally in plugins
+func (p *DbtParser) GetSemanticModelParser() *SemanticModelParser {
+	return p.semanticModelParser
+}
+
+// GetMetricParser returns the metric parser
+// Deprecated: Use GetManifest and parse internally in plugins
+func (p *DbtParser) GetMetricParser() *MetricParser {
+	return p.metricParser
+}
+
+// GetManifest returns the parsed manifest
+func (p *DbtParser) GetManifest() *models.DbtManifest {
+	return p.manifest
 }

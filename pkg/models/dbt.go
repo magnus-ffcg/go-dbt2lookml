@@ -149,7 +149,6 @@ type DbtCatalog struct {
 
 // DbtModelColumnMeta represents metadata about a column in a dbt model
 type DbtModelColumnMeta struct {
-	Looker *DbtMetaLooker `json:"looker,omitempty" yaml:"looker,omitempty"`
 }
 
 // DbtModelColumn represents a column in a dbt model
@@ -226,7 +225,6 @@ func isLowerCaseWithoutUnderscore(s string) bool {
 
 // DbtModelMeta represents metadata about a dbt model
 type DbtModelMeta struct {
-	Looker *DbtMetaLooker `json:"looker,omitempty" yaml:"looker,omitempty"`
 }
 
 // DbtModel represents a dbt model
@@ -272,7 +270,9 @@ func (m *DbtManifestMetadata) ValidateAdapter() error {
 
 // DbtManifest represents a dbt manifest
 type DbtManifest struct {
-	Nodes     map[string]interface{} `json:"nodes" yaml:"nodes"` // Can be DbtModel or DbtNode
-	Metadata  DbtManifestMetadata    `json:"metadata" yaml:"metadata"`
-	Exposures map[string]DbtExposure `json:"exposures" yaml:"exposures"`
+	Nodes          map[string]interface{}      `json:"nodes" yaml:"nodes"` // Can be DbtModel or DbtNode
+	Metadata       DbtManifestMetadata         `json:"metadata" yaml:"metadata"`
+	Exposures      map[string]DbtExposure      `json:"exposures" yaml:"exposures"`
+	SemanticModels map[string]DbtSemanticModel `json:"semantic_models,omitempty" yaml:"semantic_models,omitempty"`
+	Metrics        map[string]DbtMetric        `json:"metrics,omitempty" yaml:"metrics,omitempty"`
 }

@@ -57,16 +57,95 @@ type LookMLGenerator struct {
 	viewGenerator      *ViewGenerator
 	exploreGenerator   *ExploreGenerator
 	measureGenerator   *MeasureGenerator
+
+	// Plugins - hook-based extensibility
+	plugins []Plugin
 }
 
 // NewLookMLGenerator creates a new LookMLGenerator instance
 func NewLookMLGenerator(cfg *config.Config) *LookMLGenerator {
-	return &LookMLGenerator{
+	gen := &LookMLGenerator{
 		config:             cfg,
 		dimensionGenerator: NewDimensionGenerator(cfg),
 		viewGenerator:      NewViewGenerator(cfg),
 		exploreGenerator:   NewExploreGenerator(cfg),
 		measureGenerator:   NewMeasureGenerator(cfg),
+		plugins:            make([]Plugin, 0),
+	}
+
+	return gen
+}
+
+// RegisterPlugin registers a plugin with the generator
+// Plugins receive hooks during generation lifecycle
+func (g *LookMLGenerator) RegisterPlugin(plugin Plugin) {
+	g.plugins = append(g.plugins, plugin)
+}
+
+// LoadManifest passes the raw manifest to plugins for parsing
+// This is the new preferred way to handle semantic models and metrics
+// Plugins parse what they need internally from the manifest
+func (g *LookMLGenerator) LoadManifest(manifest *models.DbtManifest) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnManifestLoaded(manifest)
+		}
+	}
+}
+
+// SetSemanticMeasures sets the semantic measures mapping for generation
+// Fires DataIngestionHook to all interested plugins
+// Deprecated: Use LoadManifest instead
+func (g *LookMLGenerator) SetSemanticMeasures(semanticMeasures map[string][]models.DbtSemanticMeasure) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnSemanticMeasures(semanticMeasures)
+		}
+	}
+}
+
+// SetRatioMetrics sets the ratio metrics for generation
+func (g *LookMLGenerator) SetRatioMetrics(ratioMetrics []models.DbtMetric) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(ratioMetrics, "ratio")
+		}
+	}
+}
+
+// SetDerivedMetrics sets the derived metrics for generation
+func (g *LookMLGenerator) SetDerivedMetrics(derivedMetrics []models.DbtMetric) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(derivedMetrics, "derived")
+		}
+	}
+}
+
+// SetSimpleMetrics sets the simple metrics for generation
+func (g *LookMLGenerator) SetSimpleMetrics(simpleMetrics []models.DbtMetric) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(simpleMetrics, "simple")
+		}
+	}
+}
+
+// SetCumulativeMetrics sets the cumulative metrics for generation
+func (g *LookMLGenerator) SetCumulativeMetrics(cumulativeMetrics []models.DbtMetric) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(cumulativeMetrics, "cumulative")
+		}
+	}
+}
+
+// SetConversionMetrics sets the conversion metrics for generation
+func (g *LookMLGenerator) SetConversionMetrics(conversionMetrics []models.DbtMetric) {
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(DataIngestionHook); ok && hook.Enabled() {
+			hook.OnMetrics(conversionMetrics, "conversion")
+		}
 	}
 }
 
@@ -109,7 +188,7 @@ func (g *LookMLGenerator) GenerateAllWithOptions(ctx context.Context, models []*
 		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file
-		if err := g.generateViewFile(model); err != nil {
+		if err := g.generateViewFile(ctx, model); err != nil {
 			modelErr := ModelError{
 				ModelName: model.Name,
 				Error:     err,
@@ -172,7 +251,7 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 		g.config.Logger().Debug().Str("model", model.Name).Msg("Generating LookML for model")
 
 		// Generate main view file (includes explore and nested views inline)
-		if err := g.generateViewFile(model); err != nil {
+		if err := g.generateViewFile(ctx, model); err != nil {
 			if g.config.ContinueOnError {
 				errorMsg := fmt.Sprintf("failed to generate view for model %s: %v", model.Name, err)
 				g.config.Logger().Warn().Str("model", model.Name).Err(err).Msg("Failed to generate view")
@@ -196,11 +275,14 @@ func (g *LookMLGenerator) GenerateAllWithContext(ctx context.Context, models []*
 }
 
 // generateViewFile generates a LookML view file for a model (includes explore and nested views)
-func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
+// Base view contains ONLY catalog-based dimensions and a default count measure
+func (g *LookMLGenerator) generateViewFile(ctx context.Context, model *models.DbtModel) error {
 	var fullContent strings.Builder
 
-	// 1. Generate main view first
+	// 1. Generate BASE view from catalog only (no dbt semantic measures)
+	// All dbt semantic layer content goes into view extension
 	view, err := g.viewGenerator.GenerateView(model)
+
 	if err != nil {
 		return fmt.Errorf("failed to generate view: %w", err)
 	}
@@ -221,6 +303,18 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	explore, err := g.exploreGenerator.GenerateExplore(model)
 	if err != nil {
 		return fmt.Errorf("failed to generate explore: %w", err)
+	}
+
+	// 3b. Fire ExploreEnrichmentHook to allow plugins to add joins
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(ExploreEnrichmentHook); ok && hook.Enabled() {
+			if err := hook.EnrichExplore(ctx, model, explore, explore.Name); err != nil {
+				g.config.Logger().Warn().
+					Err(err).
+					Str("plugin", plugin.Name()).
+					Msg("Plugin explore enrichment failed")
+			}
+		}
 	}
 
 	exploreContent, err := g.exploreToLookML(explore)
@@ -245,6 +339,20 @@ func (g *LookMLGenerator) generateViewFile(model *models.DbtModel) error {
 	}
 
 	g.config.Logger().Debug().Str("file", filePath).Msg("Generated view file")
+
+	// 4. Fire AfterModelGeneration hook for plugins to generate additional files
+	for _, plugin := range g.plugins {
+		if hook, ok := plugin.(ModelGenerationHook); ok && hook.Enabled() {
+			if err := hook.AfterModelGeneration(ctx, model); err != nil {
+				g.config.Logger().Warn().
+					Err(err).
+					Str("plugin", plugin.Name()).
+					Str("model", model.Name).
+					Msg("Plugin after-generation hook failed")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -354,12 +462,7 @@ func (g *LookMLGenerator) generateExploreFile(model *models.DbtModel) error {
 
 // shouldGenerateExplore determines if an explore should be generated for a model
 func (g *LookMLGenerator) shouldGenerateExplore(model *models.DbtModel) bool {
-	// Check if model has joins defined in meta
-	if model.Meta != nil && model.Meta.Looker != nil && len(model.Meta.Looker.Joins) > 0 {
-		return true
-	}
-
-	// Default to generating explores for all models (can be configured)
+	// Generate explores for all models (can be configured in the future)
 	return true
 }
 
@@ -515,116 +618,14 @@ func (g *LookMLGenerator) getNestedViewFilename(model *models.DbtModel, arrayNam
 	return fmt.Sprintf("%s.view.lkml", viewName)
 }
 
-// viewToLookML converts a LookMLView to LookML string format
+// viewToLookML converts a LookMLView to its string representation using templates.
 func (g *LookMLGenerator) viewToLookML(view *models.LookMLView) (string, error) {
-	// This is a simplified implementation
-	// A full implementation would use a proper LookML serializer
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("view: %s {\n", view.Name))
-	builder.WriteString(fmt.Sprintf("  sql_table_name: %s ;;\n", view.SQLTableName))
-
-	if view.Label != nil {
-		builder.WriteString(fmt.Sprintf("  label: \"%s\"\n", *view.Label))
-	}
-
-	if view.Description != nil {
-		builder.WriteString(fmt.Sprintf("  description: \"%s\"\n", *view.Description))
-	}
-
-	// Add dimensions
-	for _, dimension := range view.Dimensions {
-		builder.WriteString(g.dimensionToLookML(&dimension))
-	}
-
-	// Add dimension groups
-	for _, dimensionGroup := range view.DimensionGroups {
-		builder.WriteString(g.dimensionGroupToLookML(&dimensionGroup))
-	}
-
-	// Add measures
-	for _, measure := range view.Measures {
-		builder.WriteString(g.measureToLookML(&measure))
-	}
-
-	builder.WriteString("}\n")
-
-	return builder.String(), nil
+	return renderLookML("view", view)
 }
 
-// lookmlJoinToLookML converts a LookML join to LookML string
-func (g *LookMLGenerator) lookmlJoinToLookML(join *models.LookMLJoin) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  join: %s {\n", join.Name))
-
-	if join.ViewLabel != nil {
-		builder.WriteString(fmt.Sprintf("    view_label: \"%s\"\n", *join.ViewLabel))
-	}
-
-	if join.SQL != nil {
-		builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", *join.SQL))
-	}
-
-	if join.Relationship != nil {
-		builder.WriteString(fmt.Sprintf("    relationship: %s\n", string(*join.Relationship)))
-	}
-
-	builder.WriteString("  }\n")
-
-	return builder.String()
-}
-
-// exploreToLookML converts an explore to LookML string
+// exploreToLookML converts a LookMLExplore to its string representation using templates.
 func (g *LookMLGenerator) exploreToLookML(explore *models.LookMLExplore) (string, error) {
-	var builder strings.Builder
-
-	builder.WriteString("\n# Un-hide and use this explore, or copy the joins into another explore, to get all the fully nested relationships from this view\n")
-	builder.WriteString(fmt.Sprintf("explore: %s {\n", explore.Name))
-	builder.WriteString("  hidden: yes\n")
-
-	// Add joins
-	for _, join := range explore.Joins {
-		builder.WriteString(g.lookmlJoinToLookML(&join))
-	}
-
-	builder.WriteString("}\n")
-
-	return builder.String(), nil
-}
-
-// dimensionToLookML converts a dimension to LookML string
-func (g *LookMLGenerator) dimensionToLookML(dimension *models.LookMLDimension) string {
-	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("  dimension: %s {\n", dimension.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", dimension.Type))
-	builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", dimension.SQL))
-
-	// Add group_label if present
-	if dimension.GroupLabel != nil {
-		builder.WriteString(fmt.Sprintf("    group_label: \"%s\"\n", *dimension.GroupLabel))
-	}
-
-	// Add group_item_label if present
-	if dimension.GroupItemLabel != nil {
-		builder.WriteString(fmt.Sprintf("    group_item_label: \"%s\"\n", *dimension.GroupItemLabel))
-	}
-
-	if dimension.Label != nil {
-		builder.WriteString(fmt.Sprintf("    label: \"%s\"\n", *dimension.Label))
-	}
-
-	if dimension.Description != nil {
-		builder.WriteString(fmt.Sprintf("    description: \"%s\"\n", *dimension.Description))
-	}
-
-	if dimension.Hidden != nil && *dimension.Hidden {
-		builder.WriteString("    hidden: yes\n")
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
+	return renderLookML("explore", explore)
 }
 
 // generateNestedViewsInline generates nested views and appends them to the content builder
@@ -831,70 +832,4 @@ func (g *LookMLGenerator) generateNestedViewSQL(viewName string, arrayName strin
 		return fmt.Sprintf("%s.%s", viewName, strings.ToLower(columnName))
 	}
 	return fmt.Sprintf("${TABLE}.%s", strings.ToLower(columnName))
-}
-
-// dimensionGroupToLookML converts a dimension group to LookML string
-func (g *LookMLGenerator) dimensionGroupToLookML(dimensionGroup *models.LookMLDimensionGroup) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  dimension_group: %s {\n", dimensionGroup.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", dimensionGroup.Type))
-	builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", dimensionGroup.SQL))
-
-	if len(dimensionGroup.Timeframes) > 0 {
-		timeframes := make([]string, len(dimensionGroup.Timeframes))
-		for i, tf := range dimensionGroup.Timeframes {
-			timeframes[i] = string(tf)
-		}
-		builder.WriteString(fmt.Sprintf("    timeframes: [%s]\n", strings.Join(timeframes, ", ")))
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
-}
-
-// measureToLookML converts a measure to LookML string
-func (g *LookMLGenerator) measureToLookML(measure *models.LookMLMeasure) string {
-	var builder strings.Builder
-
-	builder.WriteString(fmt.Sprintf("  measure: %s {\n", measure.Name))
-	builder.WriteString(fmt.Sprintf("    type: %s\n", string(measure.Type)))
-
-	if measure.SQL != nil {
-		builder.WriteString(fmt.Sprintf("    sql: %s ;;\n", *measure.SQL))
-	}
-
-	if measure.Label != nil {
-		builder.WriteString(fmt.Sprintf("    label: \"%s\"\n", *measure.Label))
-	}
-
-	builder.WriteString("  }\n\n")
-
-	return builder.String()
-}
-
-// joinToLookML converts a join to LookML string
-func (g *LookMLGenerator) joinToLookML(join *models.DbtMetaLookerJoin) string {
-	var builder strings.Builder
-
-	if join.JoinModel != nil {
-		builder.WriteString(fmt.Sprintf("  join: %s {\n", *join.JoinModel))
-
-		if join.SQLON != nil {
-			builder.WriteString(fmt.Sprintf("    sql_on: %s ;;\n", *join.SQLON))
-		}
-
-		if join.Type != nil {
-			builder.WriteString(fmt.Sprintf("    type: %s\n", string(*join.Type)))
-		}
-
-		if join.Relationship != nil {
-			builder.WriteString(fmt.Sprintf("    relationship: %s\n", string(*join.Relationship)))
-		}
-
-		builder.WriteString("  }\n\n")
-	}
-
-	return builder.String()
 }
